@@ -1,0 +1,70 @@
+# AGENTS.md — CampusCart
+
+Guidance for any coding agent (or human) working in this repository. Read this file,
+`docs/IMPLEMENTATION_STATUS.md`, and `docs/ARCHITECTURE.md` before changing anything.
+
+## Phase gating (overrides everything else)
+
+Work happens in strict phases: 0 → 1 → 2 → 3 → 4 → 5 → 6A → 6B → 6C → 7 → 8.
+
+- Implement **only** the phase the user has authorized (`Continue to Phase N`). Never start the next one automatically.
+- Each phase follows: inspect, plan, implement, verify, document, stop.
+- A phase is `COMPLETE` only when its acceptance criteria were verified by commands that were actually run.
+- At the end of each phase, update `docs/IMPLEMENTATION_STATUS.md` (and `docs/ARCHITECTURE.md` / this file if needed), then report using the 9-section format: phase and status · what was implemented · files/migrations · commands run · actual results · bugs/limitations/blockers · acceptance criteria done/outstanding · next phase · exact command to continue.
+- Out of scope permanently: campus navigation and the RL Campus Navigator.
+
+## Requirements
+
+- Product requirements: `CampusCart_Team_Orbiz_Report.pdf/.docx` (in `~/Documents/Projects/`) plus the master build prompt.
+- Traceability and conflicts: `docs/REQUIREMENTS.md`. When an `OPEN` decision blocks work, build the documented default and say so. Never silently invent behaviour.
+- Built from scratch. Do not import code from other folders on this machine.
+
+## Layout
+
+```
+apps/student-web  apps/manager-dashboard  apps/pos-dashboard   Next.js 16 (ports 3000/3001/3002)
+apps/student-mobile                                            Expo (Phase 3)
+packages/contracts   shared API types      packages/config   tsconfig presets
+services/api         FastAPI (only writer of business state)
+supabase/            migrations, seeds, pgTAP tests (schema source of truth)
+ml/  services/intelligence/   offline training / inference boundary (Phases 6–7)
+```
+
+## Commands
+
+```bash
+pnpm install                       # JS deps (pnpm 12, pinned via packageManager)
+pnpm dev:student-web               # or dev:manager, dev:pos
+pnpm typecheck && pnpm lint && pnpm test && pnpm build
+pnpm format                        # Prettier (TS/JSON/YAML; Markdown and Python excluded)
+
+cd services/api
+python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+.venv/bin/uvicorn app.main:app --reload --port 8000
+.venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy && .venv/bin/pytest -q
+
+bash scripts/verify.sh             # everything above, fails fast
+```
+
+## Non-negotiable rules
+
+1. **Server is authoritative.** Prices, totals, availability, stock, slot capacity, payment state and order status are decided by the API and DB, never by a client.
+2. **Money is integer paise.** No floats for currency, anywhere.
+3. **RLS on every `public` table.** Never disable RLS or bypass auth to make something work. Privileged keys stay server-side.
+4. **Explicit state machine.** Order status changes go through the backend transition table only.
+5. **Transactions + locking** for any multi-row change (order create, stock, slots, payments, ledgers). No check-then-write races.
+6. **Idempotency** for retryable mutations and webhooks. Financial ledgers are append-only.
+7. **No fabrication.** No fake orders, metrics, model results, payment successes, or seeded "production-looking" data. Empty states are honest. Synthetic data is labelled synthetic.
+8. **No secrets in git.** Only placeholder `.env.example` files are tracked. Browser and mobile code gets only `NEXT_PUBLIC_*` / `EXPO_PUBLIC_*` values.
+9. **RL/LLM are constrained advisors.** They choose only from valid actions the API supplies, have deterministic fallbacks, and can never override inventory, payment, permission or state rules.
+10. **Don't claim what you didn't run.** Report failures with their output.
+
+## Conventions
+
+- TypeScript: strict (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`). Import backend types from `@campuscart/contracts`, never redeclare them.
+- Python: ruff (rules in `pyproject.toml`), mypy `--strict`, settings via `CAMPUSCART_*` env vars in `app/core/config.py`. Route handlers stay thin; logic goes in service modules.
+- API errors use the envelope in `app/core/errors.py` (raise `ApiError`). Every response has `X-Request-ID`.
+- New settings are declared in the phase that uses them and added to the relevant `.env.example`.
+- Migrations: `supabase migration new <name>`, hand-written SQL, reviewed. Never edit an applied migration; add a new one.
+- Tests live next to the code (`*.test.ts`) or in `services/api/tests/`. Every authorization rule gets a negative test.
+- pnpm blocks dependency install scripts. Allow one only via `allowBuilds` in `pnpm-workspace.yaml`, with a comment saying why.

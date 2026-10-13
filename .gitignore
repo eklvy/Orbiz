@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment — never commit real values; only *.example files are tracked
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Supabase local state
+supabase/.branches/
+supabase/.temp/
+
+# ML artifacts (tracked via model registry, not git)
+ml/**/runs/
+ml/**/checkpoints/
+ml/**/artifacts/
+
+# Expo
+.expo/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

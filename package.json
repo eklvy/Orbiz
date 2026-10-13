@@ -1,0 +1,24 @@
+{
+  "name": "campuscart",
+  "private": true,
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev:student-web": "pnpm --filter @campuscart/student-web dev",
+    "dev:manager": "pnpm --filter @campuscart/manager-dashboard dev",
+    "dev:pos": "pnpm --filter @campuscart/pos-dashboard dev",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "bash scripts/verify.sh"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: campuscart-api
+Version: 0.0.0
+Summary: CampusCart backend API (FastAPI)
+Requires-Python: >=3.12
+Requires-Dist: fastapi<0.144,>=0.143
+Requires-Dist: uvicorn[standard]<0.55,>=0.54
+Requires-Dist: pydantic-settings<3,>=2.15
+Provides-Extra: dev
+Requires-Dist: pytest<10,>=9.1; extra == "dev"
+Requires-Dist: httpx2<3,>=2.13; extra == "dev"
+Requires-Dist: ruff<0.18,>=0.17; extra == "dev"
+Requires-Dist: mypy<3,>=2.4; extra == "dev"
