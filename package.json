@@ -15,10 +15,16 @@
     "build": "pnpm -r --if-present build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "verify": "bash scripts/verify.sh"
+    "verify": "bash scripts/verify.sh",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "db:status": "supabase status"
   },
   "devDependencies": {
     "prettier": "3.9.10",
+    "supabase": "2.120.0",
     "typescript": "5.9.3"
   }
 }

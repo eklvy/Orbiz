@@ -3,14 +3,14 @@
 Status vocabulary: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `INCOMPLETE` · `COMPLETE`.
 A phase is `COMPLETE` only when its acceptance criteria were verified by commands actually run.
 
-Last updated: 2026-10-13 (Phase 0).
+Last updated: 2026-10-13 (Phase 1).
 
 ## Phase overview
 
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Repository inspection, architecture, scaffolding, tooling | **COMPLETE** |
-| 1 | Database, authentication, authorization, RLS | NOT STARTED |
+| 1 | Database, authentication, authorization, RLS | **COMPLETE** |
 | 2 | Core backend, ordering, inventory, real-time events | NOT STARTED |
 | 3 | Student website + student mobile app | NOT STARTED |
 | 4 | Manager dashboard + POS/kitchen dashboard | NOT STARTED |
@@ -66,7 +66,10 @@ Phases run strictly in order. Each one starts only on the explicit instruction `
 A bug was found and fixed during verification: `/health` read the process-global settings instead of the settings
 the app instance was created with. Fixed via `app.state.settings` and the `app_settings` dependency, and covered by a test.
 
-**Not verified:** the GitHub Actions workflow has not run, because there is no remote repository and nothing has been committed yet.
+**CI:** after the push to `eklvy/Orbiz`, the first GitHub Actions run passed (verified via the GitHub API at the start of Phase 1).
+
+**Phase 0 defect found later:** `services/api/campuscart_api.egg-info/` (a pip build artifact) was committed. It was removed from git
+and added to `.gitignore` in Phase 1.
 
 ### Acceptance criteria
 
@@ -81,13 +84,87 @@ the app instance was created with. Fixed via `app.state.settings` and the `app_s
 
 ---
 
+## Phase 1 — COMPLETE
+
+### Decisions applied (user gave no answers, so the documented defaults were used)
+
+- D-4: no guest ordering. Signed-out visitors can only read active outlets.
+- D-10: sign in with email + password via Supabase Auth. `roll_number` is stored on the profile and unique case-insensitively.
+- D-11: email-domain allow-list implemented. It's empty locally, which means any domain is allowed.
+- D-14: dev seeds are fictional (`Dev Sample North Café`, etc.) and local/test only.
+
+### Delivered
+
+**Database** (`supabase/migrations/`, Postgres 17 via Supabase CLI 2.120.0):
+
+| Migration | Contents |
+|---|---|
+| `20261013120000_foundation.sql` | `private` schema (not exposed via the Data API), `set_updated_at` trigger, enums `customer_type`, `platform_role`, `outlet_role` |
+| `20261013120100_identity.sql` | `profiles` (constraints, unique roll number), `user_roles`, `private.allowed_email_domains`, `private.is_admin()`, signup trigger `private.handle_new_user()`, column-level grants, RLS |
+| `20261013120200_outlets.sql` | `outlets`, `outlet_staff` (one role per user per outlet), `private.is_outlet_staff/manager()`, admin-only-field trigger, RLS |
+| `20261013120300_audit_logs.sql` | append-only `audit_logs` + trigger on outlets / outlet_staff / user_roles, RLS |
+
+**Seeds:** `supabase/seeds/01_dev_identity.sql` has 7 fictional accounts (admin, two managers, kitchen staff, two students,
+faculty) and 3 outlets, one of them inactive. The credentials are in the file header.
+
+**API** (`services/api`):
+- `app/core/auth.py`: Supabase JWT verification (JWKS ES256/RS256, optional HS256), `current_principal` dependency
+- `app/core/db.py`: psycopg pool; `user_transaction()` runs queries as the caller under RLS
+- `GET /api/v1/me`: profile, platform roles, outlet memberships. `PATCH /api/v1/me`: editable fields only, with extras rejected (422)
+- `GET /api/v1/health/ready`: database readiness (503 envelope when unavailable)
+- New error code `service_unavailable` (Python and `@campuscart/contracts`)
+- Settings: `CAMPUSCART_SUPABASE_URL`, `CAMPUSCART_DATABASE_URL`, optional `CAMPUSCART_SUPABASE_JWT_SECRET`,
+  `CAMPUSCART_JWT_AUDIENCE`, and pool sizes. Staging and production refuse to start without the Supabase URL and DB URL.
+
+**Tooling:** `pnpm db:start|stop|reset|test|status`, `scripts/supabase-env.sh`, `verify.sh` now runs the DB reset, pgTAP and
+integration tests when the stack is up (and says SKIPPED otherwise), and a new CI `database` job.
+
+### Verification (actually run, 2026-10-13)
+
+| Check | Result |
+|---|---|
+| `supabase start` (fresh) | All 4 migrations and the seed applied with no errors |
+| `supabase db reset` (inside `verify.sh`) | Clean re-apply from scratch |
+| `supabase test db` (pgTAP) | **56/56 pass** across 4 files: schema invariants (9), profiles (16), outlets/staff/roles (22), audit (9) |
+| Mutation check | Disabling RLS on `profiles` and loosening the staff-insert policy made **5 tests fail** across 3 files; after a reset everything passed again. This shows the tests detect real authorization regressions |
+| `pytest -m "not integration"` | 25/25 pass (token verification: valid ES256/HS256; rejects expired, wrong aud/iss, missing claims, foreign key, anon/service-role, `alg=none`, HS256 without a secret, tampering, garbage) |
+| `pytest -m integration` (real GoTrue + Postgres) | **10/10 pass**: readiness; signup creates profile; profile edit allow-list; duplicate roll number rejected; seeded manager and admin roles; real-token verification + tampered/anon-key rejection; API DB session runs as `authenticated` under RLS and resets after the transaction; logout revokes refresh token; password-recovery email delivered to local Mailpit |
+| Local token algorithm | User tokens are ES256 with JWKS (EC key), so the asymmetric path is the one exercised |
+| Live API smoke (`uvicorn` + `curl`) | `/health/ready` gives 200; `/me` with a real kitchen-staff token returns the outlet role; no token gives the 401 envelope; the token never appears in logs |
+| ruff / ruff format / mypy `--strict` | Pass (23 files) |
+| `bash scripts/verify.sh` | "All checks passed." (all JS checks, builds, Python checks, DB reset, pgTAP, integration) |
+
+**Not verified:** the new CI `database` job hasn't run on GitHub, because Phase 1 hasn't been pushed.
+
+### Acceptance criteria
+
+- [x] Core migrations apply successfully (fresh start + reset)
+- [x] Authentication works in the configured environment (signup, password login, logout/refresh revocation, password recovery email, against local Supabase Auth)
+- [x] Core RLS policies are tested (56 pgTAP assertions + mutation check)
+- [x] Unauthorized access is rejected (cross-user profiles, cross-outlet edits, privilege escalation, forged `granted_by`, audit tampering, anon access, invalid tokens)
+
+### Known limitations (Phase 1)
+
+- An access token remains valid until it expires (≤ 1 h) after logout; only the refresh token is revoked.
+- A failed signup due to the domain allow-list or an invalid roll number surfaces from Supabase Auth as a generic
+  "Database error saving new user". Phase 3 clients must validate first. A `before-user-created` auth hook could give
+  precise errors later.
+- Staff and admin accounts have `customer_type = student` by default (the field only matters for customers). Cosmetic.
+- Signup metadata is user-controlled, so anyone can register as `faculty`. That's harmless today (same permissions) but must be
+  revisited if faculty ever get different prices or privileges.
+- There's no protection against removing the last admin. Admin management UIs arrive in later phases.
+- Staff lookup by email (for managers adding kitchen staff) is not implemented. It needs a server endpoint (Phase 4).
+- Docker Desktop crashed once during the first image pull (host disk briefly full). It recovered after a restart. This is environmental and not a code issue.
+
+---
+
 ## Prerequisites and blockers for upcoming phases
 
 | Needed for | Item | Status |
 |---|---|---|
-| Phase 1 | Supabase CLI (will be added as a pinned npm devDependency) + Docker running | Docker present; CLI to install |
-| Phase 1 | Decisions D-4 (guest mode), D-10 (login identifier), D-11 (email domain) | OPEN, defaults documented |
-| Phase 1 | Real outlet list (D-14) for non-dev seeds | OPEN (dev seeds will be fictional) |
+| Phase 1 | Supabase CLI + Docker | Done (CLI 2.120.0 pinned; Docker Desktop running) |
+| Any | Decisions D-4, D-10, D-11 | Defaults implemented; can be changed later (D-11: insert real domain(s) into `private.allowed_email_domains`) |
+| Pilot | Real outlet list and menus (D-14) | OPEN (dev seeds are fictional) |
 | Phase 2 | Decision D-2 (seat/crowd data source) | OPEN, default documented |
 | Phase 3 | Expo account / device or simulator for mobile testing | Not yet checked |
 | Phase 5 | Razorpay **test-mode** key ID, key secret, webhook secret | Not provided |
@@ -97,6 +174,5 @@ the app instance was created with. Fixed via `app.state.settings` and the `app_s
 
 ## Known limitations (Phase 0)
 
-- Only `/api/v1/health` exists. There is no database, auth, or domain logic yet, by design.
 - App pages are placeholders that say so explicitly.
 - pnpm was installed globally with `npm i -g pnpm@12.11.2`, since Node 26 doesn't ship corepack.

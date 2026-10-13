@@ -5,3 +5,4 @@ packages:
 # Dependencies explicitly allowed to run install scripts (pnpm blocks all others).
 allowBuilds:
   unrs-resolver: true # native resolver used by eslint-config-next's import plugin
+  supabase: true # postinstall downloads the pinned Supabase CLI binary

@@ -43,8 +43,16 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/uvicorn app.main:app --reload --port 8000
 .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy && .venv/bin/pytest -q
 
-bash scripts/verify.sh             # everything above, fails fast
+pnpm db:start                      # local Supabase in Docker (Postgres, Auth, Realtime, Mailpit)
+pnpm db:reset                      # re-apply all migrations + dev seeds
+pnpm db:test                       # pgTAP tests (schema invariants, RLS, privileges)
+eval "$(bash scripts/supabase-env.sh)"   # export API/test env from the running stack
+(cd services/api && .venv/bin/pytest -q -m integration)   # real GoTrue + Postgres
+
+bash scripts/verify.sh             # everything above, fails fast (DB steps skipped if stack is down)
 ```
+
+Dev accounts (fictional, local only) are listed in `supabase/seeds/01_dev_identity.sql`.
 
 ## Non-negotiable rules
 
@@ -65,6 +73,9 @@ bash scripts/verify.sh             # everything above, fails fast
 - Python: ruff (rules in `pyproject.toml`), mypy `--strict`, settings via `CAMPUSCART_*` env vars in `app/core/config.py`. Route handlers stay thin; logic goes in service modules.
 - API errors use the envelope in `app/core/errors.py` (raise `ApiError`). Every response has `X-Request-ID`.
 - New settings are declared in the phase that uses them and added to the relevant `.env.example`.
-- Migrations: `supabase migration new <name>`, hand-written SQL, reviewed. Never edit an applied migration; add a new one.
+- Migrations: `pnpm exec supabase migration new <name>`, hand-written SQL, reviewed. Never edit a migration that has been pushed/shared; add a new one.
+- Every new `public` table: `enable row level security`, `revoke all ... from anon, authenticated` then grant the minimum (Supabase grants ALL by default), at least one policy, and pgTAP tests incl. negative cases. `01_schema.test.sql` fails if RLS or a policy is missing.
+- RLS helpers live in the `private` schema (`private.is_admin()`, `private.is_outlet_staff(id)`, `private.is_outlet_manager(id)`); `SECURITY DEFINER` functions must `set search_path = ''`.
+- User-scoped API work goes through `Database.user_transaction(principal)` so RLS applies; never query user data on a bare privileged connection.
 - Tests live next to the code (`*.test.ts`) or in `services/api/tests/`. Every authorization rule gets a negative test.
 - pnpm blocks dependency install scripts. Allow one only via `allowBuilds` in `pnpm-workspace.yaml`, with a comment saying why.
