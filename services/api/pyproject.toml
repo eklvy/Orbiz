@@ -7,6 +7,8 @@ dependencies = [
     "fastapi>=0.143,<0.144",
     "uvicorn[standard]>=0.54,<0.55",
     "pydantic-settings>=2.15,<3",
+    "psycopg[binary,pool]>=3.3,<3.4",
+    "pyjwt[crypto]>=2.15,<3",
 ]
 
 [project.optional-dependencies]
@@ -27,6 +29,9 @@ include = ["app*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+markers = [
+    "integration: needs the local Supabase stack (pnpm db:start); skipped when its env vars are absent",
+]
 
 [tool.ruff]
 line-length = 100

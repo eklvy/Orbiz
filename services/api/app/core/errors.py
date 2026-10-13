@@ -21,6 +21,7 @@ ErrorCode = Literal[
     "not_found",
     "conflict",
     "rate_limited",
+    "service_unavailable",
     "internal_error",
 ]
 
@@ -32,6 +33,7 @@ _STATUS_TO_CODE: dict[int, ErrorCode] = {
     409: "conflict",
     422: "validation_error",
     429: "rate_limited",
+    503: "service_unavailable",
 }
 
 

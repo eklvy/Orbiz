@@ -38,6 +38,11 @@ def test_unknown_route_uses_error_envelope() -> None:
 
 
 def test_docs_disabled_in_production() -> None:
-    client = TestClient(create_app(Settings(environment=Environment.PRODUCTION)))
+    settings = Settings(
+        environment=Environment.PRODUCTION,
+        supabase_url="http://supabase.test",
+        database_url="postgresql://u:p@db.test/x",
+    )
+    client = TestClient(create_app(settings))
     assert client.get("/docs").status_code == 404
     assert client.get("/openapi.json").status_code == 404

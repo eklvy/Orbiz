@@ -1,0 +1,83 @@
+-- Shared pgTAP helpers. Included by each *.test.sql via \ir; everything is created inside
+-- the test's transaction and rolled back with it. Not a test file itself (.psql extension).
+
+create extension if not exists pgtap with schema extensions;
+
+create schema if not exists tests;
+grant usage on schema tests to anon, authenticated;
+
+-- Creates an auth user exactly as GoTrue would (fires the profile trigger).
+create or replace function tests.create_user(p_id uuid, p_email text, p_meta jsonb default '{}')
+returns uuid
+language sql
+as $$
+  insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, raw_app_meta_data, created_at, updated_at)
+  values ('00000000-0000-0000-0000-000000000000', p_id, 'authenticated', 'authenticated', p_email,
+          p_meta, '{"provider":"email","providers":["email"]}', now(), now())
+  returning id;
+$$;
+
+-- Switch the current transaction to an authenticated end-user session (what PostgREST and
+-- the CampusCart API do for user requests), so RLS and column privileges apply.
+create or replace function tests.authenticate_as(p_id uuid)
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+end;
+$$;
+
+create or replace function tests.as_anon()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  perform set_config('role', 'anon', true);
+end;
+$$;
+
+-- Back to the privileged test session (postgres) for setup and assertions.
+create or replace function tests.as_superuser()
+returns void
+language plpgsql
+as $$
+begin
+  perform set_config('request.jwt.claims', '', true);
+  perform set_config('role', 'postgres', true);
+end;
+$$;
+
+grant execute on all functions in schema tests to anon, authenticated;
+
+-- Common fixture: two outlets, a manager + kitchen staff at A, a manager at B, two students,
+-- and an admin. Fixed IDs so assertions read clearly.
+create or replace function tests.seed_fixture()
+returns void
+language plpgsql
+as $$
+begin
+  perform tests.create_user('10000000-0000-4000-a000-000000000001', 'admin@fixture.test', '{"full_name":"Fixture Admin"}');
+  perform tests.create_user('10000000-0000-4000-a000-000000000002', 'mgr.a@fixture.test', '{"full_name":"Manager A"}');
+  perform tests.create_user('10000000-0000-4000-a000-000000000003', 'kitchen.a@fixture.test', '{"full_name":"Kitchen A"}');
+  perform tests.create_user('10000000-0000-4000-a000-000000000004', 'mgr.b@fixture.test', '{"full_name":"Manager B"}');
+  perform tests.create_user('10000000-0000-4000-a000-000000000005', 'stu.1@fixture.test',
+    '{"full_name":"Student One","roll_number":"FX-001","department":"CSE","year_of_study":"2"}');
+  perform tests.create_user('10000000-0000-4000-a000-000000000006', 'stu.2@fixture.test',
+    '{"full_name":"Student Two","roll_number":"FX-002"}');
+
+  insert into public.outlets (id, slug, name) values
+    ('20000000-0000-4000-b000-00000000000a', 'fixture-a', 'Fixture Outlet A'),
+    ('20000000-0000-4000-b000-00000000000b', 'fixture-b', 'Fixture Outlet B'),
+    ('20000000-0000-4000-b000-00000000000c', 'fixture-hidden', 'Fixture Hidden');
+  update public.outlets set is_active = false where slug = 'fixture-hidden';
+
+  insert into public.user_roles (user_id, role) values ('10000000-0000-4000-a000-000000000001', 'admin');
+  insert into public.outlet_staff (outlet_id, user_id, role) values
+    ('20000000-0000-4000-b000-00000000000a', '10000000-0000-4000-a000-000000000002', 'manager'),
+    ('20000000-0000-4000-b000-00000000000a', '10000000-0000-4000-a000-000000000003', 'kitchen_staff'),
+    ('20000000-0000-4000-b000-00000000000b', '10000000-0000-4000-a000-000000000004', 'manager');
+end;
+$$;

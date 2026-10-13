@@ -1,15 +1,16 @@
 """Environment-driven settings, validated at startup.
 
-Only settings needed by the current phase are declared here. Later phases add their own
-(Supabase, Razorpay, Expo push, model paths) together with the code that uses them, so a
-missing secret fails fast instead of being silently ignored.
+Only settings needed by implemented phases are declared here. Later phases add their own
+(Razorpay, Expo push, model paths) together with the code that uses them, so a missing
+secret fails fast instead of being silently ignored.
 """
 
 from enum import StrEnum
 from functools import lru_cache
+from typing import Self
 
 from fastapi import Request
-from pydantic import Field
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -38,9 +39,39 @@ class Settings(BaseSettings):
         ]
     )
 
+    # Supabase project base URL, e.g. http://127.0.0.1:54321. Used to derive the JWT issuer
+    # ({url}/auth/v1) and the JWKS endpoint for asymmetric token verification.
+    supabase_url: str | None = None
+    # Legacy symmetric JWT secret. Only needed if the project still signs with HS256.
+    supabase_jwt_secret: SecretStr | None = None
+    jwt_audience: str = "authenticated"
+
+    # Direct Postgres connection string (server-side only). The connecting role must be able
+    # to `SET ROLE authenticated` so user requests run under RLS (docs/ARCHITECTURE.md §4).
+    database_url: SecretStr | None = None
+    db_pool_min_size: int = Field(default=1, ge=0)
+    db_pool_max_size: int = Field(default=10, ge=1)
+
+    @model_validator(mode="after")
+    def _require_deployed_settings(self) -> Self:
+        if self.environment in (Environment.STAGING, Environment.PRODUCTION):
+            missing = [
+                name for name in ("supabase_url", "database_url") if getattr(self, name) is None
+            ]
+            if missing:
+                raise ValueError(
+                    f"Missing required settings for {self.environment}: "
+                    + ", ".join(f"CAMPUSCART_{m.upper()}" for m in missing)
+                )
+        return self
+
     @property
     def docs_enabled(self) -> bool:
         return self.environment is not Environment.PRODUCTION
+
+    @property
+    def jwt_issuer(self) -> str | None:
+        return f"{self.supabase_url.rstrip('/')}/auth/v1" if self.supabase_url else None
 
 
 @lru_cache

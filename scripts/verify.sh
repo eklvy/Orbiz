@@ -33,7 +33,29 @@ step "Ruff lint + format check (services/api)"
 step "mypy --strict (services/api)"
 (cd "$API" && .venv/bin/mypy)
 
-step "pytest (services/api)"
-(cd "$API" && .venv/bin/pytest -q)
+step "pytest unit tests (services/api)"
+(cd "$API" && .venv/bin/pytest -q -m "not integration")
 
-printf '\nAll checks passed.\n'
+# Database + integration checks need the local Supabase stack (Docker). They are skipped
+# with a clear message when it isn't running; CI always runs them.
+db_checks=skipped
+if env_lines="$(bash scripts/supabase-env.sh 2>/dev/null)"; then
+  eval "$env_lines"
+  step "Reset local database (migrations + dev seeds)"
+  pnpm exec supabase db reset
+
+  step "pgTAP database tests (schema, RLS, privileges)"
+  pnpm exec supabase test db
+
+  step "pytest integration tests (real GoTrue + Postgres)"
+  (cd "$API" && .venv/bin/pytest -q -m integration)
+  db_checks=ran
+else
+  printf '\n==> SKIPPED database + integration checks: local Supabase is not running (pnpm db:start)\n'
+fi
+
+if [[ "$db_checks" == ran ]]; then
+  printf '\nAll checks passed.\n'
+else
+  printf '\nAll non-database checks passed. Database checks were SKIPPED (start Supabase to run them).\n'
+fi

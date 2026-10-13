@@ -3,7 +3,7 @@
 Pre-order campus canteen food, pick a pickup slot, and collect it with a digital token instead of
 standing in a queue. Built by Team Orbiz for The NorthCap University.
 
-**Status:** Phase 0 (scaffolding) complete. No ordering features exist yet. See
+**Status:** Phase 1 (database, auth, RLS) complete. No ordering features exist yet. See
 [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
 | Interface | Path | Dev URL |
@@ -32,6 +32,17 @@ python3 -m venv .venv
 cp .env.example .env        # placeholders; adjust if needed
 ```
 
+Local database (needs Docker running):
+
+```bash
+pnpm db:start                          # first run downloads several GB of images
+pnpm db:reset                          # migrations + fictional dev seed data
+eval "$(bash scripts/supabase-env.sh)" # exports CAMPUSCART_SUPABASE_URL / CAMPUSCART_DATABASE_URL
+```
+
+Supabase Studio: http://127.0.0.1:54323 · local mail catcher (password-reset emails): http://127.0.0.1:54324.
+Dev accounts are listed at the top of `supabase/seeds/01_dev_identity.sql`.
+
 Each app has its own `.env.example`. Copy it to `.env.local` in that app when the app starts reading
 those values (Phase 3/4). The root [`.env.example`](.env.example) lists every variable and the phase that introduces it.
 
@@ -44,6 +55,7 @@ pnpm dev:pos                # :3002
 
 cd services/api && .venv/bin/uvicorn app.main:app --reload --port 8000
 curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/v1/health/ready      # checks the database
 ```
 
 ## Verify
@@ -52,7 +64,9 @@ curl http://localhost:8000/api/v1/health
 bash scripts/verify.sh
 ```
 
-This runs Prettier, TypeScript, ESLint, Vitest, Next.js production builds, ruff, mypy (strict) and pytest.
+This runs Prettier, TypeScript, ESLint, Vitest, Next.js production builds, ruff, mypy (strict) and pytest unit tests.
+If the local Supabase stack is running, it also resets the database and runs the pgTAP RLS tests and API integration tests.
+Otherwise it says those were skipped.
 CI (`.github/workflows/ci.yml`) runs the same checks.
 
 ## Documentation

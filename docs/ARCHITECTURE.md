@@ -1,6 +1,6 @@
 # CampusCart — Architecture
 
-Status: **Phase 0 baseline.** Sections marked _(proposed)_ are design intent. They are finalised in the
+Status: **Phase 1 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
 phase that implements them and updated here when that happens.
 
 Requirement sources: `CampusCart_Team_Orbiz_Report.pdf/.docx` (Team Orbiz, Aug 2026) and the master
@@ -83,13 +83,20 @@ How this differs from the layout suggested in the master prompt, and why:
 | Intelligence | Recommendations within a valid action set supplied by the API | Override stock, capacity, payment, permission or state-machine rules |
 | `ml/` | Offline training and evaluation | Run on the request path or at app startup |
 
-### Write path _(proposed, finalised in Phases 1–2)_
+### Write path _(auth + RLS adoption implemented in Phase 1; business writes from Phase 2)_
 
 1. A client calls the API with its Supabase access token (`Authorization: Bearer …`).
-2. The API verifies the JWT (signature via the project JWKS, `aud`, `exp`) and loads roles and outlet scope from the DB.
-3. User-scoped operations run in a transaction where the DB session adopts the caller's identity
-   (`set local role authenticated` plus `request.jwt.claims`), so **RLS applies to the API too**.
-   It's defence in depth, not a replacement for explicit authorization checks in services.
+2. The API verifies the JWT (`app/core/auth.py`): ES256/RS256 signatures via the project JWKS
+   (`{SUPABASE_URL}/auth/v1/.well-known/jwks.json`, cached 5 min), or HS256 only if a legacy secret is
+   configured. It also checks `iss`, `aud`, `exp`/`iat`/`sub`, and requires `role = authenticated`, so anon and
+   service keys are rejected. Roles are never read from the token. They're loaded from the DB.
+3. User-scoped operations run in `Database.user_transaction()` (`app/core/db.py`). The DB session adopts the
+   caller's identity with transaction-local `set_config('role','authenticated')` and `request.jwt.claims`,
+   so **RLS applies to the API too**. It's defence in depth, not a replacement for explicit authorization checks in
+   services. An integration test proves `current_user = authenticated` inside the transaction and that the pooled
+   connection is privileged again afterwards.
+   Driver: psycopg 3 async pool, plain parameterised SQL (no ORM), `prepare_threshold=None` so transaction-mode
+   poolers work.
 4. Privileged system operations (payment webhooks, reservation expiry, RL logging) use a separate,
    narrowly-scoped DB role. They never use the service-role key in a client.
 
@@ -99,18 +106,39 @@ How this differs from the layout suggested in the master prompt, and why:
 - Private data (orders, wallet) goes through the API, or Supabase reads under RLS.
 - Live updates: clients subscribe to Realtime on tables or channels that RLS restricts to rows they may see (own orders; staff: own outlet).
 
-## 5. Identity and authorization model _(proposed, Phase 1)_
+## 5. Identity and authorization model _(implemented, Phase 1)_
 
 - **Global roles:** `student`, `admin`. Faculty are customers like students. The report mentions a Faculty login, so `customer_type` is kept as a profile attribute rather than a role ([REQUIREMENTS.md](REQUIREMENTS.md) D-5).
 - **Outlet-scoped roles** via `outlet_staff(user_id, outlet_id, role)`, where role is `manager` or `kitchen_staff`. One user can manage outlet A and be kitchen staff at outlet B.
-- Authorization helpers are SQL functions used by RLS (`is_outlet_manager(outlet_id)`, `is_outlet_staff(outlet_id)`, `is_admin()`), mirrored by Python service checks.
+- Authorization helpers are `SECURITY DEFINER` SQL functions in the non-exposed `private` schema
+  (`private.is_admin()`, `private.is_outlet_staff(id)`, `private.is_outlet_manager(id)`), used by RLS policies.
+  Later phases mirror them in Python service checks.
+- **Profiles** are created by a trigger on `auth.users` from signup metadata (`full_name`, `roll_number`, `department`,
+  `year_of_study`, `customer_type`). Users may update only `full_name`, `department`, `year_of_study` and `hostel_room`
+  (column-level `GRANT`). `roll_number` and `customer_type` are fixed after signup.
+- **Email-domain allow-list** (`private.allowed_email_domains`): empty means any domain is allowed (local default, D-11).
+  Once populated, signups from other domains are rejected by the trigger.
+- **Staff management:** admins assign any outlet role. Managers may add or remove `kitchen_staff` at their own outlet only.
+  `granted_by` must equal the acting user. Managers edit their outlet's descriptive fields, but `slug` and `is_active`
+  are admin-only (trigger).
+- **Audit:** inserts, updates and deletes on `outlets`, `outlet_staff` and `user_roles` are written by trigger to the append-only
+  `audit_logs` table. No client or `service_role` may modify it. Admins read all entries; managers read their outlet's.
+- **Sessions:** access tokens live 1 h (`jwt_expiry`), and refresh tokens rotate. Logout revokes the refresh token, but an
+  already-issued access token stays valid until it expires (stateless verification). This is an accepted trade-off.
+- **Auth abuse limits:** Supabase Auth's built-in rate limits (`[auth.rate_limit]` in `supabase/config.toml`).
+  Passwords need at least 8 characters with letters and digits.
 - The browser never supplies a role. Route guards in the UI are only UX; the API and RLS enforce access.
 
-## 6. Database and migration workflow _(proposed, Phase 1)_
+## 6. Database and migration workflow _(implemented, Phase 1)_
 
 - Supabase CLI (`supabase` npm devDependency, pinned) manages the local stack and migrations.
 - `supabase migration new <name>` creates the migration; SQL is hand-written and reviewed. **Migrations are the only source of schema truth.** The API does not use ORM auto-migration (no Alembic) to avoid two competing schema owners.
-- Local: `supabase start`, `supabase db reset` (applies all migrations and seeds), `supabase test db` (pgTAP).
+- Local: `pnpm db:start`, `pnpm db:reset` (applies all migrations and seeds), `pnpm db:test` (pgTAP).
+  `eval "$(bash scripts/supabase-env.sh)"` exports the API/test connection settings from the running stack.
+- pgTAP tests share `supabase/tests/_helpers.psql` (`tests.authenticate_as(uuid)`, `tests.as_anon()`, fixtures), created and
+  rolled back inside each test transaction. Schema invariants are tested too: RLS on every public table, a policy on every
+  table, `search_path` pinned on every `SECURITY DEFINER` function, and no client privileges in `private`.
+- Seeds (`supabase/seeds/*.sql`) are fictional dev data. They create auth users directly; local and test only.
 - Conventions: `timestamptz` everywhere; `created_at`/`updated_at`; money as `integer` paise with `CHECK (>= 0)`; explicit FKs with chosen `ON DELETE`; indexes for every FK and hot filter; RLS enabled on every table in `public`.
 - Remote environments get migrations via `supabase db push` from CI. Never via dashboard edits.
 - Domain tables are added in the phase that implements them, not all in Phase 1.
@@ -187,4 +215,7 @@ The API logs structured JSON (`app/core/logging.py`) with a `request_id` and dur
 | Web framework | Next.js 16, React 19, Tailwind 4 | Current stable |
 | ESLint | 9.x flat config + `eslint-config-next` | ESLint 10 plugins (react, import) were not yet verified compatible |
 | Python | 3.12+ (3.13 locally/CI), FastAPI, pydantic-settings, ruff, mypy `--strict`, pytest, httpx2 | Starlette deprecates `httpx` in its test client in favour of `httpx2` |
+| DB driver (Phase 1) | psycopg 3 async + psycopg_pool, plain SQL | Native async, `set_config` per transaction for RLS adoption, no second schema owner (no ORM migrations) |
+| JWT (Phase 1) | PyJWT with JWKS (ES256) | Local Supabase CLI 2.120 signs user tokens with ES256 (verified); HS256 supported only if configured |
+| Supabase CLI | `supabase` npm devDependency, pinned 2.120.0 | Reproducible CLI version for every developer and CI |
 | Node | `.nvmrc` = 22 (LTS) for CI; developed on Node 26 | |
