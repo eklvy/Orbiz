@@ -6,3 +6,8 @@ services/
 ml/
 supabase/
 *.md
+packages/contracts/openapi.json
+packages/contracts/src/generated/
+apps/student-mobile/dist-native/
+apps/student-mobile/dist-web/
+apps/student-mobile/.expo/

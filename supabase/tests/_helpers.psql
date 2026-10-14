@@ -81,3 +81,69 @@ begin
     ('20000000-0000-4000-b000-00000000000b', '10000000-0000-4000-a000-000000000004', 'manager');
 end;
 $$;
+
+-- Phase 2 ordering fixture on top of seed_fixture():
+--   outlet A (open, prefix 'A'): Chai (tracked, 5 left, low ≤ 2, prep 2), Sandwich (untracked,
+--   prep 5), Samosa (tracked, 1 left, prep 3); outlet B (open): Coffee (untracked).
+--   Slots: S1 A +1h cap 2 · S2 A +2h cap 1 · S3 A +1min cap 5 (too soon) · S4 B +1h cap 5.
+create or replace function tests.seed_ordering_fixture()
+returns void
+language plpgsql
+as $$
+begin
+  perform tests.seed_fixture();
+  update public.outlets set status = 'open', token_prefix = 'A' where id = '20000000-0000-4000-b000-00000000000a';
+  update public.outlets set status = 'open', token_prefix = 'B' where id = '20000000-0000-4000-b000-00000000000b';
+
+  insert into public.menu_items (id, outlet_id, name, price_paise, prep_minutes, track_quantity) values
+    ('30000000-0000-4000-d000-000000000001', '20000000-0000-4000-b000-00000000000a', 'Fixture Chai', 2000, 2, true),
+    ('30000000-0000-4000-d000-000000000002', '20000000-0000-4000-b000-00000000000a', 'Fixture Sandwich', 7000, 5, false),
+    ('30000000-0000-4000-d000-000000000003', '20000000-0000-4000-b000-00000000000a', 'Fixture Samosa', 1500, 3, true),
+    ('30000000-0000-4000-d000-000000000004', '20000000-0000-4000-b000-00000000000b', 'Fixture Coffee', 5000, 3, false);
+  insert into public.inventory (menu_item_id, quantity_available, low_stock_threshold) values
+    ('30000000-0000-4000-d000-000000000001', 5, 2),
+    ('30000000-0000-4000-d000-000000000003', 1, 0);
+
+  insert into public.pickup_slots (id, outlet_id, starts_at, ends_at, capacity) values
+    ('40000000-0000-4000-e000-000000000001', '20000000-0000-4000-b000-00000000000a', now() + interval '1 hour', now() + interval '75 minutes', 2),
+    ('40000000-0000-4000-e000-000000000002', '20000000-0000-4000-b000-00000000000a', now() + interval '2 hours', now() + interval '135 minutes', 1),
+    ('40000000-0000-4000-e000-000000000003', '20000000-0000-4000-b000-00000000000a', now() + interval '1 minute', now() + interval '16 minutes', 5),
+    ('40000000-0000-4000-e000-000000000004', '20000000-0000-4000-b000-00000000000b', now() + interval '1 hour', now() + interval '75 minutes', 5);
+end;
+$$;
+
+-- Place an order as p_user (end-user session), then return to the superuser session.
+create or replace function tests.order_as(
+  p_user uuid, p_slot uuid, p_items jsonb, p_key text,
+  p_outlet uuid default '20000000-0000-4000-b000-00000000000a'
+)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_id uuid;
+begin
+  perform tests.authenticate_as(p_user);
+  v_id := app.create_order(p_outlet, p_slot, p_items, p_key, 'hash:' || p_key);
+  perform tests.as_superuser();
+  return v_id;
+end;
+$$;
+
+-- Stand-in for a provider-verified payment (Phase 5 webhook). Superuser session only.
+create or replace function tests.pay(p_order uuid)
+returns void
+language sql
+as $$ select app.confirm_order_payment(p_order, 'test-payment:' || p_order::text); $$;
+
+create or replace function tests.stock(p_item uuid)
+returns integer
+language sql
+as $$ select quantity_available from public.inventory where menu_item_id = p_item; $$;
+
+create or replace function tests.reserved(p_slot uuid)
+returns integer
+language sql
+as $$ select reserved_count from public.pickup_slots where id = p_slot; $$;
+
+grant execute on all functions in schema tests to anon, authenticated;

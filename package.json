@@ -20,7 +20,8 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
-    "db:status": "supabase status"
+    "db:status": "supabase status",
+    "contracts:generate": "bash scripts/generate-contracts.sh"
   },
   "devDependencies": {
     "prettier": "3.9.10",

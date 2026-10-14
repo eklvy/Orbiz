@@ -1,7 +1,8 @@
+import type { components } from "./generated/api";
+
 /**
- * Error envelope returned by every CampusCart API error response.
- * Mirrors `ErrorResponse` in services/api/app/core/errors.py — keep them in sync
- * until types are generated from the OpenAPI schema (see docs/ARCHITECTURE.md §7).
+ * Error envelope returned by every CampusCart API error response (services/api/app/core/errors.py).
+ * The runtime list below is checked against the generated OpenAPI types at compile time.
  */
 export const API_ERROR_CODES = [
   "validation_error",
@@ -15,6 +16,12 @@ export const API_ERROR_CODES = [
 ] as const;
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
+
+// Compile-time drift guard: fails `tsc` if the backend's error codes and this list diverge.
+type GeneratedErrorCode = components["schemas"]["ErrorDetail"]["code"];
+type Exact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+const errorCodesMatchBackend: Exact<ApiErrorCode, GeneratedErrorCode> = true;
+void errorCodesMatchBackend;
 
 export interface ApiErrorBody {
   error: {

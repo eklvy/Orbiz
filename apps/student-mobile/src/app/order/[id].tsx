@@ -1,0 +1,168 @@
+import {
+  canTransition,
+  formatDayLabel,
+  formatPaise,
+  formatSlot,
+  orderStatusLabel,
+  queryKeys,
+} from "@campuscart/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Stack, useLocalSearchParams } from "expo-router";
+import { ScrollView, Text, View } from "react-native";
+import {
+  Countdown,
+  LiveIndicator,
+  OrderStatusBadge,
+  PickupPass,
+  Timeline,
+} from "@/components/status";
+import { Button, Card, ErrorBox, Loading, Muted, Title, makeStyles } from "@/components/ui";
+import { api } from "@/lib/api";
+import { confirm } from "@/lib/confirm";
+import { useOrder, useOutlet, useTransitions } from "@/lib/hooks";
+import { radius, space, useTheme } from "@/lib/theme";
+
+export default function OrderScreen() {
+  const t = useTheme();
+  const s = makeStyles(t);
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const order = useOrder(id);
+  const outlet = useOutlet(order.data?.outlet.slug);
+  const rules = useTransitions();
+  const cancel = useMutation({
+    mutationFn: () => api.cancelOrder(id),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(queryKeys.order(id), updated);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.orders });
+    },
+  });
+
+  if (order.isPending) return <Loading label="Loading order" />;
+  if (order.isError) return <ErrorBox error={order.error} onRetry={() => void order.refetch()} />;
+  const o = order.data;
+  const tz = outlet.data?.timezone ?? "Asia/Kolkata";
+  const canCancel = rules.data ? canTransition(rules.data, o, "cancelled", "student") : false;
+
+  return (
+    <ScrollView style={s.screen} contentContainerStyle={s.content}>
+      <Stack.Screen options={{ title: o.token_label ?? "Order" }} />
+      <View
+        style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}
+      >
+        <View style={{ flex: 1, gap: 2 }}>
+          <Title>{o.outlet.name}</Title>
+          <Muted>
+            Pickup {formatDayLabel(o.pickup_slot.starts_at, tz).toLowerCase()},{" "}
+            {formatSlot(o.pickup_slot.starts_at, o.pickup_slot.ends_at, tz)}
+          </Muted>
+        </View>
+        <View style={{ alignItems: "flex-end", gap: 4 }}>
+          <OrderStatusBadge status={o.status} />
+          <LiveIndicator status={order.live} />
+        </View>
+      </View>
+      <Text accessibilityLiveRegion="polite" style={{ height: 0, width: 0, opacity: 0 }}>
+        Order status: {orderStatusLabel(o.status)}
+      </Text>
+
+      {o.status === "payment_pending" && o.reservation_expires_at && (
+        <View
+          style={{
+            backgroundColor: t.warnSoft,
+            borderRadius: radius.md,
+            padding: space.lg,
+            gap: space.sm,
+          }}
+        >
+          <Text style={{ color: t.warn, fontWeight: "700" }}>
+            Awaiting payment — held for{" "}
+            <Countdown until={o.reservation_expires_at} onElapsed={() => void order.refetch()} />
+          </Text>
+          <Text style={{ color: t.warn }}>
+            Online payment isn&apos;t available in this version yet. The order won&apos;t reach the
+            kitchen until it&apos;s paid, and the hold is released automatically when the timer
+            ends.
+          </Text>
+          <Button
+            label={`Pay ${formatPaise(o.total_paise)} (coming soon)`}
+            disabled
+            onPress={() => undefined}
+          />
+        </View>
+      )}
+
+      <PickupPass order={o} />
+
+      {o.queue_position != null && (
+        <View style={{ backgroundColor: t.infoSoft, borderRadius: radius.sm, padding: space.md }}>
+          <Text style={{ color: t.info }}>
+            {o.queue_position === 0
+              ? "You're next in the kitchen queue."
+              : `${o.queue_position} order${o.queue_position === 1 ? "" : "s"} ahead of you.`}
+          </Text>
+        </View>
+      )}
+
+      {(o.status === "cancelled" || o.status === "rejected") && (
+        <View
+          style={{
+            backgroundColor: t.dangerSoft,
+            borderRadius: radius.md,
+            padding: space.lg,
+            gap: 4,
+          }}
+        >
+          <Text style={{ color: t.danger, fontWeight: "700" }}>{orderStatusLabel(o.status)}</Text>
+          {o.cancel_reason && <Text style={{ color: t.danger }}>Reason: {o.cancel_reason}</Text>}
+          {o.refund_status === "required" && (
+            <Text style={{ color: t.danger }}>
+              A refund of {formatPaise(o.total_paise)} is owed to you. Refund processing arrives in
+              a later release.
+            </Text>
+          )}
+        </View>
+      )}
+
+      <Card>
+        <Timeline status={o.status} />
+        {o.items.map((item) => (
+          <View key={item.id} style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: t.ink }}>
+              {item.quantity} × {item.item_name}
+            </Text>
+            <Text style={{ color: t.ink }}>{formatPaise(item.line_total_paise)}</Text>
+          </View>
+        ))}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            borderTopWidth: 1,
+            borderTopColor: t.line,
+            paddingTop: space.sm,
+          }}
+        >
+          <Text style={{ color: t.ink, fontWeight: "700" }}>Total</Text>
+          <Text style={{ color: t.ink, fontWeight: "700" }}>{formatPaise(o.total_paise)}</Text>
+        </View>
+      </Card>
+
+      {canCancel && (
+        <>
+          <ErrorBox error={cancel.error} />
+          <Button
+            label="Cancel order"
+            variant="danger"
+            busy={cancel.isPending}
+            onPress={() =>
+              void confirm("Cancel this order?", "This can't be undone.", "Cancel order").then(
+                (ok) => ok && cancel.mutate(),
+              )
+            }
+          />
+        </>
+      )}
+    </ScrollView>
+  );
+}

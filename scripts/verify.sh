@@ -20,6 +20,9 @@ pnpm test
 step "Next.js production builds"
 NEXT_TELEMETRY_DISABLED=1 pnpm build
 
+step "Student mobile: iOS + Android JS bundles (Hermes)"
+pnpm --filter @campuscart/student-mobile export:native >/dev/null && echo "iOS and Android bundles built."
+
 API=services/api
 PY="$API/.venv/bin"
 if [[ ! -x "$PY/python" ]]; then
@@ -32,6 +35,9 @@ step "Ruff lint + format check (services/api)"
 
 step "mypy --strict (services/api)"
 (cd "$API" && .venv/bin/mypy)
+
+step "Generated API contracts are up to date"
+bash scripts/check-contracts.sh
 
 step "pytest unit tests (services/api)"
 (cd "$API" && .venv/bin/pytest -q -m "not integration")
@@ -49,6 +55,14 @@ if env_lines="$(bash scripts/supabase-env.sh 2>/dev/null)"; then
 
   step "pytest integration tests (real GoTrue + Postgres)"
   (cd "$API" && .venv/bin/pytest -q -m integration)
+
+  step "Student website end-to-end (Playwright, desktop + mobile viewports)"
+  bash scripts/web-env.sh student-web http://localhost:8100 >/dev/null
+  (cd apps/student-web && pnpm exec playwright test)
+
+  step "Student mobile app end-to-end (React Native Web build, Playwright)"
+  bash scripts/web-env.sh student-mobile http://localhost:8100 >/dev/null
+  (cd apps/student-mobile && pnpm e2e)
   db_checks=ran
 else
   printf '\n==> SKIPPED database + integration checks: local Supabase is not running (pnpm db:start)\n'

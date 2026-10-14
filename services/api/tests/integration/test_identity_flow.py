@@ -4,10 +4,8 @@ Run with the stack up (`pnpm db:start && pnpm db:reset`) and env exported by
 `scripts/supabase-env.sh`. Skipped automatically when that env is absent.
 """
 
-import os
 import time
 import uuid
-from collections.abc import Iterator
 from typing import Any
 
 import httpx2 as httpx
@@ -15,43 +13,19 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.auth import Principal
-from app.core.config import Environment, Settings
 from app.core.db import Database
-from app.main import create_app
+from tests.integration.conftest import (
+    ANON_KEY,
+    DATABASE_URL,
+    MAILPIT_URL,
+    SEED_PASSWORD,
+    TEST_PASSWORD,
+    sign_in,
+)
 
 pytestmark = pytest.mark.integration
 
-SUPABASE_URL = os.environ.get("CAMPUSCART_SUPABASE_URL")
-DATABASE_URL = os.environ.get("CAMPUSCART_DATABASE_URL")
-ANON_KEY = os.environ.get("TEST_SUPABASE_ANON_KEY")
-MAILPIT_URL = os.environ.get("TEST_MAILPIT_URL")
-# Shared password of the fictional dev accounts in supabase/seeds/01_dev_identity.sql.
-SEED_PASSWORD = os.environ.get("TEST_SEED_PASSWORD", "DevOnly-CampusCart-2026")
 NORTH_CAFE_ID = "00000000-0000-4000-b000-000000000001"
-
-if not (SUPABASE_URL and DATABASE_URL and ANON_KEY):
-    pytest.skip(
-        "local Supabase env not set (source scripts/supabase-env.sh)", allow_module_level=True
-    )
-
-
-@pytest.fixture(scope="module")
-def gotrue() -> Iterator[httpx.Client]:
-    with httpx.Client(
-        base_url=f"{SUPABASE_URL}/auth/v1", headers={"apikey": ANON_KEY or ""}, timeout=10
-    ) as client:
-        yield client
-
-
-@pytest.fixture(scope="module")
-def api() -> Iterator[TestClient]:
-    settings = Settings(
-        environment=Environment.TEST,
-        supabase_url=SUPABASE_URL,
-        database_url=DATABASE_URL,
-    )
-    with TestClient(create_app(settings)) as client:
-        yield client
 
 
 def bearer(token: str) -> dict[str, str]:
@@ -61,20 +35,10 @@ def bearer(token: str) -> dict[str, str]:
 def sign_up(gotrue: httpx.Client, **metadata: Any) -> tuple[str, dict[str, Any]]:
     email = f"it-{uuid.uuid4().hex[:12]}@campuscart.test"
     response = gotrue.post(
-        "/signup",
-        json={"email": email, "password": "Integration-Test-1", "data": metadata},
+        "/signup", json={"email": email, "password": TEST_PASSWORD, "data": metadata}
     )
     assert response.status_code == 200, response.text
     return email, response.json()
-
-
-def sign_in(gotrue: httpx.Client, email: str, password: str) -> dict[str, Any]:
-    response = gotrue.post(
-        "/token", params={"grant_type": "password"}, json={"email": email, "password": password}
-    )
-    assert response.status_code == 200, response.text
-    session: dict[str, Any] = response.json()
-    return session
 
 
 def test_readiness_reports_database_ok(api: TestClient) -> None:
@@ -135,7 +99,7 @@ def test_duplicate_roll_number_signup_is_rejected(gotrue: httpx.Client) -> None:
         "/signup",
         json={
             "email": f"it-{uuid.uuid4().hex[:12]}@campuscart.test",
-            "password": "Integration-Test-1",
+            "password": TEST_PASSWORD,
             "data": {"full_name": "Second", "roll_number": roll.lower()},
         },
     )

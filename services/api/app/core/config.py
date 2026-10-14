@@ -36,6 +36,7 @@ class Settings(BaseSettings):
             "http://localhost:3000",
             "http://localhost:3001",
             "http://localhost:3002",
+            "http://localhost:8081",  # Expo web dev server; native apps need no CORS
         ]
     )
 

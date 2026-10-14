@@ -54,6 +54,15 @@ bash scripts/verify.sh             # everything above, fails fast (DB steps skip
 
 Dev accounts (fictional, local only) are listed in `supabase/seeds/01_dev_identity.sql`.
 
+```bash
+pnpm contracts:generate            # after any API schema change: regenerate @campuscart/contracts (commit both files)
+bash scripts/web-env.sh student-web http://localhost:8000      # write a client app's env from the local stack
+bash scripts/web-env.sh student-mobile http://<LAN-IP>:8000    # (mobile writes apps/student-mobile/.env)
+(cd apps/student-web && pnpm exec playwright test)             # website E2E (starts/reuses API :8100 + web :3100)
+pnpm --filter @campuscart/student-mobile e2e                   # mobile app (RN Web build) E2E
+pnpm --filter @campuscart/student-mobile export:native         # iOS + Android bundles
+```
+
 ## Non-negotiable rules
 
 1. **Server is authoritative.** Prices, totals, availability, stock, slot capacity, payment state and order status are decided by the API and DB, never by a client.
@@ -76,6 +85,11 @@ Dev accounts (fictional, local only) are listed in `supabase/seeds/01_dev_identi
 - Migrations: `pnpm exec supabase migration new <name>`, hand-written SQL, reviewed. Never edit a migration that has been pushed/shared; add a new one.
 - Every new `public` table: `enable row level security`, `revoke all ... from anon, authenticated` then grant the minimum (Supabase grants ALL by default), at least one policy, and pgTAP tests incl. negative cases. `01_schema.test.sql` fails if RLS or a policy is missing.
 - RLS helpers live in the `private` schema (`private.is_admin()`, `private.is_outlet_staff(id)`, `private.is_outlet_manager(id)`); `SECURITY DEFINER` functions must `set search_path = ''`.
-- User-scoped API work goes through `Database.user_transaction(principal)` so RLS applies; never query user data on a bare privileged connection.
+- User-scoped API work goes through `Database.user_transaction(principal)` so RLS applies; never query user data on a bare privileged connection. Public catalogue reads use `anon_transaction()`; trusted server operations (payments, jobs) use `system_transaction()`.
+- Multi-row business invariants live in `SECURITY DEFINER` functions in the `app` schema (not exposed by PostgREST). They authorise explicitly, lock in the order outlet → inventory (by id) → slot → order, and fail with `private.fail(<http status>, '<reason>', '<message>')` (SQLSTATE `CC<status>`), which the API maps to the error envelope.
+- Order status changes only via `app.transition_order` (rules in `order_status_transitions`), `app.verify_pickup`, `app.confirm_order_payment` (system-only) or `app.expire_pending_orders` (cron). Never `update orders set status` elsewhere.
+- Client apps: shared, framework-free logic goes in `packages/client` (no React there, because web and Expo use different React versions). UI must never compute prices, totals, availability or allowed transitions; read them from the API (`canTransition` uses `GET /orders/transitions`).
+- Every user-visible flow added to a client gets a Playwright test against the real backend; keep the axe and no-horizontal-scroll checks green.
+- Tests that need a "paid" order use the labelled stand-in `confirm_payment()` / `tests.pay()`, which calls the same system-only function the Phase 5 webhook will.
 - Tests live next to the code (`*.test.ts`) or in `services/api/tests/`. Every authorization rule gets a negative test.
 - pnpm blocks dependency install scripts. Allow one only via `allowBuilds` in `pnpm-workspace.yaml`, with a comment saying why.

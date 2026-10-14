@@ -3,7 +3,7 @@
 Pre-order campus canteen food, pick a pickup slot, and collect it with a digital token instead of
 standing in a queue. Built by Team Orbiz for The NorthCap University.
 
-**Status:** Phase 1 (database, auth, RLS) complete. No ordering features exist yet. See
+**Status:** Phase 3 (student website + student mobile app) complete. Manager/kitchen dashboards and real payments are later phases. See
 [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
 | Interface | Path | Dev URL |
@@ -11,7 +11,7 @@ standing in a queue. Built by Team Orbiz for The NorthCap University.
 | Student website | `apps/student-web` | http://localhost:3000 |
 | Manager dashboard | `apps/manager-dashboard` | http://localhost:3001 |
 | POS / kitchen dashboard | `apps/pos-dashboard` | http://localhost:3002 |
-| Student mobile app | `apps/student-mobile` | Phase 3 |
+| Student mobile app | `apps/student-mobile` | Expo dev server (see its README) |
 | API (FastAPI) | `services/api` | http://localhost:8000 (`/docs` for OpenAPI) |
 
 ## Prerequisites
@@ -48,6 +48,9 @@ those values (Phase 3/4). The root [`.env.example`](.env.example) lists every va
 
 ## Run
 
+Each client needs an env file pointing at the API and Supabase:
+`bash scripts/web-env.sh student-web` (and `student-mobile`), after `pnpm db:start`.
+
 ```bash
 pnpm dev:student-web        # :3000
 pnpm dev:manager            # :3001
@@ -73,5 +76,6 @@ CI (`.github/workflows/ci.yml`) runs the same checks.
 
 - [AGENTS.md](AGENTS.md): working rules, commands, conventions
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): system design, boundaries, workflows
+- [docs/API.md](docs/API.md): endpoints, error reasons, order lifecycle, Realtime subscriptions
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): feature map from the report and open decisions
 - [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md): phase status and verification log

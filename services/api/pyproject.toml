@@ -15,6 +15,7 @@ dependencies = [
 dev = [
     "pytest>=9.1,<10",
     "httpx2>=2.13,<3",
+    "websockets>=17,<18",
     "ruff>=0.17,<0.18",
     "mypy>=2.4,<3",
 ]

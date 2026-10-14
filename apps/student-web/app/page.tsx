@@ -1,17 +1,45 @@
-import { API_VERSION_PREFIX } from "@campuscart/contracts";
+"use client";
 
-export default function Home() {
+import { LiveIndicator } from "@/components/live-indicator";
+import { OutletCard } from "@/components/outlet-card";
+import { EmptyState, ErrorState, LoadingList } from "@/components/ui/states";
+import { useOutlets } from "@/lib/hooks";
+
+export default function HomePage() {
+  const outlets = useOutlets();
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 px-4 py-16">
-      <p className="text-sm font-medium uppercase tracking-wide text-[var(--muted)]">CampusCart</p>
-      <h1 className="text-3xl font-semibold">CampusCart Student</h1>
-      <p className="text-[var(--muted)]">
-        Order ahead, pick a pickup slot, and skip the canteen queue.
-      </p>
-      <p className="rounded-md border border-current/15 px-3 py-2 text-sm">
-        Scaffolding only. This interface is implemented in Phase 3. It will talk to the API at{" "}
-        <code>{API_VERSION_PREFIX}</code>.
-      </p>
-    </main>
+    <div className="grid gap-6">
+      <section>
+        <h1 className="text-3xl font-bold tracking-tight">Skip the queue.</h1>
+        <p className="mt-1 max-w-prose text-muted">
+          Order before you leave class, pick a pickup time, and collect with your token.
+        </p>
+      </section>
+      <section aria-labelledby="outlets-heading" className="grid gap-3">
+        <div className="flex items-center justify-between">
+          <h2 id="outlets-heading" className="text-lg font-semibold">
+            Outlets
+          </h2>
+          <LiveIndicator status={outlets.live} />
+        </div>
+        {outlets.isPending ? (
+          <LoadingList label="Loading outlets" />
+        ) : outlets.isError ? (
+          <ErrorState error={outlets.error} onRetry={() => void outlets.refetch()} />
+        ) : outlets.data.length === 0 ? (
+          <EmptyState title="No outlets are listed yet">Check back soon.</EmptyState>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {outlets.data.map((outlet) => (
+              <OutletCard key={outlet.id} outlet={outlet} />
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-muted">
+          Wait times and crowd levels are estimated from current orders, not from cameras or
+          sensors.
+        </p>
+      </section>
+    </div>
   );
 }

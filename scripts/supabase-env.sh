@@ -5,7 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-status="$(pnpm exec supabase status -o env 2>/dev/null)" || {
+# Call the pinned CLI directly (pnpm may not be on PATH in launchers and CI shells).
+status="$(./node_modules/.bin/supabase status -o env 2>/dev/null)" || {
   echo "Local Supabase is not running (pnpm db:start)" >&2
   exit 1
 }

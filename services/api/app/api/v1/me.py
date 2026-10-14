@@ -1,16 +1,10 @@
-from typing import Annotated
+from fastapi import APIRouter
 
-from fastapi import APIRouter, Depends
-
-from app.core.auth import Principal, current_principal
-from app.core.db import Database, get_database
+from app.api.deps import CurrentPrincipal, Db
 from app.modules.identity import service
 from app.modules.identity.schemas import Me, ProfileUpdate
 
 router = APIRouter(prefix="/me", tags=["identity"])
-
-CurrentPrincipal = Annotated[Principal, Depends(current_principal)]
-Db = Annotated[Database, Depends(get_database)]
 
 
 @router.get("", response_model=Me)

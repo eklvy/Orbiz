@@ -3,7 +3,7 @@
 Status vocabulary: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `INCOMPLETE` · `COMPLETE`.
 A phase is `COMPLETE` only when its acceptance criteria were verified by commands actually run.
 
-Last updated: 2026-10-13 (Phase 1).
+Last updated: 2026-10-14 (Phase 3).
 
 ## Phase overview
 
@@ -11,8 +11,8 @@ Last updated: 2026-10-13 (Phase 1).
 |---|---|---|
 | 0 | Repository inspection, architecture, scaffolding, tooling | **COMPLETE** |
 | 1 | Database, authentication, authorization, RLS | **COMPLETE** |
-| 2 | Core backend, ordering, inventory, real-time events | NOT STARTED |
-| 3 | Student website + student mobile app | NOT STARTED |
+| 2 | Core backend, ordering, inventory, real-time events | **COMPLETE** |
+| 3 | Student website + student mobile app | **COMPLETE** (native simulator run blocked) |
 | 4 | Manager dashboard + POS/kitchen dashboard | NOT STARTED |
 | 5 | Payments, wallets, group orders, notifications, loyalty, budgets, specials/polls/reviews | NOT STARTED |
 | 6A | RL environments, reward design, baselines | NOT STARTED |
@@ -134,7 +134,7 @@ integration tests when the stack is up (and says SKIPPED otherwise), and a new C
 | ruff / ruff format / mypy `--strict` | Pass (23 files) |
 | `bash scripts/verify.sh` | "All checks passed." (all JS checks, builds, Python checks, DB reset, pgTAP, integration) |
 
-**Not verified:** the new CI `database` job hasn't run on GitHub, because Phase 1 hasn't been pushed.
+**CI:** Phase 1 was pushed as PR #1. All three jobs (TypeScript, Python, Database) passed on GitHub.
 
 ### Acceptance criteria
 
@@ -158,6 +158,164 @@ integration tests when the stack is up (and says SKIPPED otherwise), and a new C
 
 ---
 
+## Phase 2 — COMPLETE
+
+Branch `phase-2/ordering-inventory-realtime`, stacked on Phase 1 (PR #1, whose CI passed on GitHub, including the database job).
+
+### Decisions applied
+- D-2 (seats/crowd): **default implemented.** Crowd level and wait come from real order load only; no seat counts.
+- D-12 (stock model), D-17 (wait estimate): implemented as documented.
+- New D-18 (pay at counter) and D-19 (no-show policy): **open.** Defaults: no counter payment; no automatic no-show
+  handling (`ready_for_pickup` stays until the pickup code is verified).
+
+### Delivered
+
+**Migrations** (`supabase/migrations/20261014…`):
+
+| Migration | Contents |
+|---|---|
+| `120000_outlet_operations` | Outlet status (open / on_break / closed + reason + break end), time zone, token prefix, slot length/capacity, reservation TTL, kitchen concurrency; `outlet_hours` |
+| `120100_menu_inventory` | `menu_categories`, `menu_items` (paise prices, diet, kcal/protein, prep time, manual status, derived `stock_status`), `inventory`, append-only `inventory_movements`; status-derivation triggers |
+| `120200_pickup_slots` | `pickup_slots` with `CHECK (reserved_count <= capacity)` |
+| `120300_orders` | Order state machine table; `orders` (paise totals, idempotency key + request hash, reservation expiry, token, version, invariants as CHECKs), `order_items` (snapshots), `order_events`, `order_pickup_codes` (owner-only), token counters; RLS (incl. own-order visibility of outlet and slot) |
+| `120400_carts` | Server-side `carts` / `cart_items` (composite FKs keep items in the cart's outlet) |
+| `120500_order_functions` | `app` schema: `create_order`, `transition_order`, `confirm_order_payment` (system-only), `verify_pickup`, `expire_pending_orders`, `end_expired_breaks`, `set_outlet_status`, `adjust_stock`, `set_stock_tracking`, `set_item_manual_status`, `generate_pickup_slots`, `generate_upcoming_slots`, `outlet_queue_stats`, `order_queue_position` |
+| `120600_realtime_and_jobs` | Realtime publication (orders, order_events, outlets, menu_items, inventory, pickup_slots) and three `pg_cron` jobs |
+
+**Seeds:** `02_dev_menu.sql` adds fictional menus, hours, stock, and today plus the next 2 days of slots for the dev outlets.
+
+**API:** catalogue (`/outlets`, menu with filters, pickup slots), server-side `/cart`, `/orders` (create with
+`Idempotency-Key`, list with cursor, detail with events / queue position / owner-only pickup code, cancel), `/orders/transitions`,
+`/staff` (queue, transitions, pickup verification), `/manage` (outlet status, stock adjust/tracking/availability, slot
+generation). DB errors map to the envelope with `details.reason`. `Database.anon_transaction()` and
+`system_transaction()` were added. See [API.md](API.md).
+
+**Contracts:** `pnpm contracts:generate` writes `packages/contracts/openapi.json` and `src/generated/api.ts`. A staleness
+check is in `verify.sh` and CI, and a compile-time error-code drift guard is in place.
+
+### Verification (actually run, 2026-10-13)
+
+| Check | Result |
+|---|---|
+| `supabase db reset` | All 11 migrations and 2 seeds apply cleanly; 252 slots generated for the dev outlets |
+| pgTAP (`supabase test db`) | **166/166 pass**: Phase 1 (56) + menu/stock/outlet ops (31), order creation (29), lifecycle (38), jobs/Realtime publication (12) |
+| Unit tests (`pytest -m "not integration"`) | **48/48** (23 new: request fingerprint, payload rejects client prices, cursors, crowd thresholds, DB-error mapping) |
+| Integration tests (`pytest -m integration`) | **30/30** against real GoTrue + Postgres + Realtime (66 s) |
+| Concurrency: stock | 25 simultaneous buyers, 5 in stock → **exactly 5 succeed**, 20 get `insufficient_stock`; stock 0; 5 orders; 5 slot places; ledger = 5 |
+| Concurrency: slot | 25 buyers, slot capacity 2 → **exactly 2 succeed**, 23 `slot_full`, no stray rows |
+| Concurrency: HTTP | 6 real users through the ASGI app, 2 in stock → two 201s, four 409 `insufficient_stock` |
+| Atomicity | A later line failing rolls back earlier reservations (pgTAP: stock, slot and order count unchanged) |
+| Full flow over HTTP | create → (verified-payment stand-in) → token `T-n` + pickup code → staff queue (no code) → confirmed → preparing → ready → wrong code (counted and committed) → right code → completed; history lists it |
+| Authorization | Cross-user order read/cancel → 404; non-staff queue → 403; kitchen/student stock changes → 403; end users cannot confirm payments (42501); staff never see pickup codes |
+| Reservation expiry via **real pg_cron** | Overdue order cancelled by `system` within 11 s; stock and slot released |
+| Realtime | Kitchen saw a new order in 450 ms; student received 30/30 status changes, **p95 543 ms** request→event (p50 532), commit→event p95 539 ms; bystander student received **none** of them |
+| Contract drift guard | Adding a fake error code makes `tsc` fail; removing it passes |
+| ruff / mypy `--strict` / ESLint / tsc / Vitest / Next builds | Pass |
+| `bash scripts/verify.sh` | "All checks passed." |
+
+**Bugs found and fixed during verification:**
+- Queue position tied when two orders shared `placed_at`. It now breaks ties by token.
+- Two `generate_series`/union typing errors in the seed and slot generation.
+- Several of my own test expectations were wrong; the code was right.
+
+**Not verified:**
+- The new CI database steps haven't run on GitHub; Phase 2 isn't pushed yet.
+- Latency was measured locally only, with one subscriber and sequential changes. Load and hosted measurements are Phase 8.
+
+### Acceptance criteria
+- [x] A test client can create and track valid orders (HTTP flow test, Realtime test)
+- [x] Invalid transitions are rejected (pgTAP + HTTP; the table-driven state machine)
+- [x] Stock and capacity are protected against concurrent reservations (25-way DB races, 6-way HTTP race, CHECK constraints)
+- [x] Authorized clients receive real events, and unauthorized ones don't (Realtime isolation test)
+
+### Known limitations (Phase 2)
+- **No real payments yet (Phase 5).** Orders stay `payment_pending` and expire unless trusted server code confirms them.
+  Tests use a clearly labelled stand-in that calls the same system-only function the webhook will.
+- Refunds are only *marked* (`refund_status = required`); money movement is Phase 5.
+- Menu, category, hours and slot-capacity editing UIs and endpoints are Phase 4 (seeded or SQL for now). Kitchen stations and
+  assignments are Phase 4/6.
+- There's no general API rate limiting yet (only the 3-unpaid-orders cap and pickup-code lockout). Planned for Phase 8.
+- Carts aren't live-synced over Realtime (see above). Clients refetch.
+- Queue position and wait estimate are simple, transparent heuristics, not predictions.
+- Slot deactivation with existing reservations isn't guarded yet (no endpoint exposes it; Phase 4 must handle it).
+
+---
+
+## Phase 3 — COMPLETE (native simulator run blocked; see below)
+
+Built on the Phase 2 working tree (branch `phase-2/ordering-inventory-realtime`; Phases 2 and 3 are not committed yet).
+
+### Delivered
+
+**`packages/client`** (new): framework-free logic shared by both student apps:
+- `openapi-fetch` client typed by `@campuscart/contracts`, with bearer-token middleware and a `CampusCartApiError` that carries the server's `details.reason`
+- typed calls for every student endpoint; shared TanStack Query keys
+- `friendlyError()` (messages plus a next-step hint), rupee/time/slot/countdown formatting in the outlet's time zone
+- order timeline, `canTransition()` driven by the server's rule table (no duplicated state machine), `isNewerVersion()` for Realtime dedupe, and the pickup QR payload
+- Zod schemas mirroring the database and Auth password rules; signup-metadata and profile-update mappers
+- `subscribeToTable()` (resyncs on every (re)connect); idempotency keys
+
+There is deliberately no React in it: the web app (React 19.3) and Expo (19.2.3) must not share a React copy, so each app has a thin hooks file.
+
+**Student website** (`apps/student-web`, Next.js 16):
+- Auth: register (student/faculty, roll-number rules), sign in with a safe `next` redirect, sign out, forgot/reset password (no email enumeration)
+- Discovery: live outlet status, wait estimate, queue length, crowd level, with a note that these come from orders, not sensors
+- Menu: categories; search, diet, max-price and available-only filters; item details with nutrition and an allergen disclaimer; sold-out/low badges; live stock and item updates
+- Server cart: steppers, an explicit "start a new cart" prompt when switching outlets, unavailable items flagged
+- Checkout: slot picker grouped by day with remaining capacity; one idempotency key per distinct request; slot or stock errors refresh the right data
+- Order tracking: live status and Realtime indicator, timeline, queue position, QR Digital Food Pass with token and pickup code, reservation countdown, **honest "Awaiting payment" with a disabled "Pay (coming soon)" button**, cancellation from the server rules, a refund-owed notice, and event history
+- Paginated history; profile editing
+- Loading, empty, error and offline states; skip link; focus styles; light and dark tokens
+
+**Student mobile** (`apps/student-mobile`, Expo SDK 57 / RN 0.86 / Expo Router):
+- Tabs (Outlets, Orders, Cart with badge, Profile) and the same flows as the website
+- LargeSecureStore session storage (Keychain/Keystore AES key plus encrypted AsyncStorage), AppState-aware token refresh, NetInfo offline banner and TanStack online manager
+- RN-Web-safe confirm prompts, QR via `react-native-svg`
+
+**Tooling:**
+- `scripts/web-env.sh` writes app env files from the local stack
+- Playwright suites for the website (desktop and Pixel 7) and the mobile web build
+- `verify.sh` and CI run the bundles and both browser suites
+- Local Auth rate limit raised for tests (local only; documented in `config.toml`)
+
+### Bugs found by these tests and fixed
+- **Backend race:** two quick "Add" taps raced to create the cart (`carts_pkey` violation → 500). Cart writes are now serialised per user (advisory lock). A regression test fails without the fix and passes with it.
+- **UX:** after placing an order, the cart page flashed "Your cart is empty" before navigating. It now shows "Order placed. Opening your order…".
+- **Mobile layout:** the header, then the profile's two-column fields, overflowed horizontally at 412 px. Fixed, and guarded by a new "no page scrolls horizontally" test.
+- Integration-test outlets are now deactivated on teardown instead of piling up in the public dev catalogue.
+
+### Verification (actually run, 2026-10-13/14)
+
+| Check | Result |
+|---|---|
+| `@campuscart/client` Vitest | 14/14 (formatting, time zones, timeline, rule-table decisions, version dedupe, validation mirrors DB rules, error-envelope mapping, network errors, idempotency keys) |
+| Website Playwright (real Supabase + API, production build) | **18/18** on desktop and Pixel 7, passed in 3 consecutive runs. Covers register (with validation), sign-in redirect, order → stand-in payment → **live** token, kitchen steps and pickup without reloads → history, cancellation (the stock ledger nets to 0), filters and sold-out, a live stock change, axe-core WCAG 2.1 AA (no serious/critical violations on 7 pages), and no horizontal scroll |
+| Mobile: typecheck, `expo lint` | Pass |
+| Mobile: `expo export` iOS + Android | Hermes bundles built (4.4 MB / 4.8 MB) |
+| Mobile: `expo-doctor` | 21/21 checks passed |
+| Mobile app as React Native Web (Pixel 7, real backend) | **1/1**: sign in → menu → cart → slot → order → stand-in payment → live token → kitchen → "Collected" |
+| Full `bash scripts/verify.sh` | "All checks passed." (also 166 pgTAP, 48 unit, 31 integration) |
+
+**Environment note:** an early browser-test run failed because Postgres stalled (statements on tiny tables took 12–18 s; a checkpoint took 43 s). The 5-minute host load average reached 25–41 while Xcode was being installed and 4 browser workers ran. Playwright now uses 2 workers. This was not a code defect, and runs since have been green.
+
+### Not verified / blocked
+- **No native run on a device or simulator.** Xcode is now installed but has **no iOS runtime** (an ~8 GB download, left for you to start), and there's no Android SDK. Not exercised natively: Keychain/Keystore storage, native navigation gestures, AppState refresh, and real push to the OS. Phone testing is possible with Expo Go (see `apps/student-mobile/README.md`).
+- The new CI steps (Playwright, mobile bundles) haven't run on GitHub; nothing since Phase 1 is pushed.
+
+### Acceptance criteria
+- [x] Both student clients use the same backend (same API, Supabase project, shared `@campuscart/client`)
+- [x] Menu, cart validation, orders and order status come from real backend data (no hardcoded data; verified end to end)
+- [x] The core student flow is tested: website on 2 viewports, and the mobile app via its web build. Native runs are blocked as described above.
+
+### Known limitations (Phase 3)
+- No real payment (Phase 5). The UI says so and holds the reservation honestly.
+- Out of scope until later phases and not shown as placeholder buttons: group orders, wallet, loyalty, polls, reviews, notifications (Phase 5); BiteBot and Surprise Meal (Phase 7). RFID/QR login and guest mode follow D-3/D-4.
+- Mobile password reset opens the website's reset page; there's no in-app deep link yet.
+- Carts aren't pushed live between devices (see Phase 2); they refresh when opened.
+- Local dev ports on this machine are 3100/8100, because another project's containers hold 3000/8000. The defaults stay 3000/8000.
+
+---
+
 ## Prerequisites and blockers for upcoming phases
 
 | Needed for | Item | Status |
@@ -166,7 +324,7 @@ integration tests when the stack is up (and says SKIPPED otherwise), and a new C
 | Any | Decisions D-4, D-10, D-11 | Defaults implemented; can be changed later (D-11: insert real domain(s) into `private.allowed_email_domains`) |
 | Pilot | Real outlet list and menus (D-14) | OPEN (dev seeds are fictional) |
 | Phase 2 | Decision D-2 (seat/crowd data source) | OPEN, default documented |
-| Phase 3 | Expo account / device or simulator for mobile testing | Not yet checked |
+| Phase 3+ | Native mobile testing | Xcode installed, **iOS runtime missing** (`xcodebuild -downloadPlatform iOS`, ~8 GB); no Android SDK. Expo Go on a phone works without either |
 | Phase 5 | Razorpay **test-mode** key ID, key secret, webhook secret | Not provided |
 | Phase 5 | Expo push access token; decisions D-6 (signup bonus), D-15 (loyalty policy) | Not provided / OPEN |
 | Phase 7 | LLM provider choice for BiteBot (optional; must work without one) | Not decided |
