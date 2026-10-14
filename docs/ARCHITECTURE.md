@@ -1,6 +1,6 @@
 # CampusCart — Architecture
 
-Status: **Phase 1 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
+Status: **Phase 2 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
 phase that implements them and updated here when that happens.
 
 Requirement sources: `CampusCart_Team_Orbiz_Report.pdf/.docx` (Team Orbiz, Aug 2026) and the master
@@ -50,7 +50,7 @@ apps/
   pos-dashboard/        Next.js, kitchen queue / counter                 (Phase 4)
 packages/
   config/               shared tsconfig presets
-  contracts/            shared API types (error envelope now; OpenAPI-generated from Phase 2)
+  contracts/            shared API types generated from OpenAPI (+ error-envelope helpers)
 services/
   api/                  FastAPI backend — the only writer of business state
   intelligence/         inference boundary — README only until Phase 6C
@@ -150,26 +150,83 @@ How this differs from the layout suggested in the master prompt, and why:
   `code` from a fixed set (`validation_error`, `unauthenticated`, `forbidden`, `not_found`, `conflict`,
   `rate_limited`, `internal_error`). Python: `app/core/errors.py`. TypeScript: `packages/contracts/src/errors.ts`.
 - **Request IDs:** every response carries `X-Request-ID`. A safe caller-supplied value is echoed; otherwise a new one is generated. It is included in every structured log line.
-- **Type sharing (from Phase 2):** a script exports `openapi.json` from the app and runs `openapi-typescript` into `packages/contracts/src/generated/`. CI fails if the generated file is stale. All four clients import types from `@campuscart/contracts`, so no client re-declares backend types.
-- Retryable mutations (order create, payment initiation, refunds) accept an `Idempotency-Key` header (Phase 2/5).
-- List endpoints are cursor-paginated.
+- **Type sharing (implemented, Phase 2):** `pnpm contracts:generate` (`scripts/generate-contracts.sh`) exports
+  `openapi.json` from the app and runs `openapi-typescript` into `packages/contracts/src/generated/api.ts`. Both files
+  are committed; `verify.sh` and CI fail if they are stale. Every error status is documented with the shared envelope,
+  and a compile-time check in `errors.ts` fails `tsc` if the frontend error-code list drifts from the backend's.
+  All four clients import types from `@campuscart/contracts`, so no client re-declares backend types.
+- `POST /orders` requires an `Idempotency-Key` header. Payment initiation and refunds will too (Phase 5).
+- List endpoints are cursor-paginated. The endpoint catalogue and business error reasons are in [API.md](API.md).
 
-## 8. Order lifecycle _(proposed, finalised in Phase 2)_
+### Business operations in SQL _(Phase 2)_
 
-```
-PAYMENT_PENDING ─pay verified─► PLACED ─staff─► CONFIRMED ─staff─► PREPARING ─staff─► READY_FOR_PICKUP ─token verified─► COMPLETED
-      │ expiry/cancel              │ student/staff  │ staff          │ staff (exception)
-      ▼                            ▼                ▼                ▼
-  CANCELLED                    CANCELLED/REJECTED → REFUND_PENDING → REFUNDED (when paid)
-```
+Multi-row invariants are enforced in `SECURITY DEFINER` functions in the `app` schema. That schema isn't exposed by
+PostgREST or GraphQL, so only the API's SQL connection can call them. They run inside the caller's RLS transaction
+(`auth.uid()` identifies the actor) and authorise explicitly. Python services validate input, call them, and shape
+responses. Failures use SQLSTATE `CC<http>` with a machine-readable reason in `HINT`, which `app/core/db.py`
+translates into the error envelope. Lock order everywhere: outlet → inventory rows (by item id) → pickup slot → order.
+System-only functions (`confirm_order_payment`, `expire_pending_orders`, `end_expired_breaks`,
+`generate_upcoming_slots`) are executable only by `service_role` / `pg_cron`. The API reaches them through
+`Database.system_transaction()`, and `private.is_system_caller()` re-checks inside.
 
-The full transition table records, for each transition: from-state, to-state, allowed actor, required payment state, side effects (stock/slot release, refund creation, notification), the event written to `order_events`, and reversibility. Stock and slot reservations are taken at order creation in the same transaction as the order. They expire if payment doesn't complete within a configured TTL, and expiry can never touch a paid order.
+## 8. Ordering, stock and pickup _(implemented, Phase 2)_
+
+**State machine.** It's the data in `public.order_status_transitions`: from, to, actor (`student` / `staff` /
+`system`), `requires_paid`, `requires_reason`, `requires_pickup_code`, `releases_stock`, `releases_slot` and
+`marks_refund_required`. Statuses are lowercase: `payment_pending → placed → confirmed → preparing →
+ready_for_pickup → completed`, plus `cancelled` and `rejected`. No transition is reversible. Refunds are tracked in a
+separate `refund_status` (`none` / `required` / `refunded`) so an order keeps *why* it ended. The prompt's
+`REFUND_PENDING` / `REFUNDED` statuses are represented this way. Every change bumps `orders.version` and appends
+to `order_events` (which also serves as status history).
+
+**Order creation** (`app.create_order`, one transaction):
+1. Advisory lock on (user, idempotency key), then replay or reject a reused key.
+2. Enforce at most 3 unpaid orders per user.
+3. Lock the outlet `FOR SHARE` and check it's accepting orders.
+4. Aggregate the lines, then for each item in id order: check it belongs to the outlet, is active and not manually sold
+   out, then do an atomic conditional decrement `quantity_available >= q` for tracked items.
+5. Lock the slot `FOR UPDATE` and check it's active, starts at least the longest prep time from now, and has capacity left.
+6. Insert the order, the item snapshots (name, unit price, prep time), stock-ledger rows and a `created` event, then
+   clear the cart.
+
+Any failure raises and rolls back everything. `pickup_slots` also has `CHECK (reserved_count <= capacity)`, and
+`inventory` has `CHECK (quantity_available >= 0)`, as a last line of defence.
+
+**Reservations.** An order holds stock and its slot place while `payment_pending`, until
+`reservation_expires_at` (outlet `reservation_ttl_minutes`, default 10). `pg_cron` runs `app.expire_pending_orders()`
+every minute (`FOR UPDATE SKIP LOCKED`, with the WHERE clause re-checked under the lock) and releases both. A paid
+order can't be expired, because payment confirmation and expiry lock the same row and each re-checks the status.
+
+**Payment boundary.** `app.confirm_order_payment(order, reference)` is system-only and idempotent per reference. It
+refuses expired reservations, sets `paid` / `placed`, and issues the daily per-outlet token (`<prefix>-<n>`, counters
+in `private.outlet_token_counters`) and a 6-character pickup code. The code lives in `order_pickup_codes`, readable only
+by the owner and never published. Staff complete pickups with `app.verify_pickup`. Wrong attempts are committed and
+counted, and 5 lock the code.
+
+**Stock model (D-12).** `menu_items.track_quantity` selects quantity tracking. `stock_status` is derived by triggers:
+`sold_out` if manually sold out or tracked at 0; `low` if manually low or tracked at or below the threshold; otherwise
+`available`. All stock changes are appended to `inventory_movements` with reason, actor and order.
+
+**Outlet status.** `open` / `on_break` (with `break_until` and a public reason) / `closed`. Only `open` accepts orders.
+An elapsed break counts as open immediately, and `pg_cron` flips it back within a minute.
+
+**Wait estimate and crowd level (D-17, D-2).** From real orders only. Active orders due within 60 minutes each take
+their longest item's prep time, divided by the outlet's `concurrent_orders`. Crowd level is `low` up to 5 min,
+`medium` up to 15, and `high` above that. There are no seat counts and no sensors.
 
 ## 9. Real-time
 
-- Supabase Realtime (Postgres changes on RLS-protected tables, or broadcast from a transactional outbox for derived events). The choice is made in Phase 2 after measuring.
+- **Chosen (Phase 2): Supabase Realtime `postgres_changes`** on `orders`, `order_events`, `outlets`,
+  `menu_items`, `inventory` and `pickup_slots`, filtered per subscriber by RLS. Every important change is committed
+  (with its `order_events` row) before Realtime sees it, so the database stays the source of truth and no outbox is
+  needed yet. Not published: `carts` and `cart_items` (Realtime doesn't apply RLS to DELETE events, which would leak
+  other users' keys), `order_pickup_codes` and `inventory_movements`.
 - Client rules: subscribe only to authorised scopes; unsubscribe on unmount; refetch authoritative state on (re)connect; dedupe by event ID or version; never treat an event as success of the client's own mutation.
-- Target: p95 under 2 s from commit to visibility on a subscribed client. **It is measured, not assumed**, in Phases 2 and 8.
+- Target: p95 under 2 s from commit to visibility on a subscribed client. **It is measured, not assumed.**
+  Phase 2 local measurement (`tests/integration/test_realtime.py`: Supabase CLI 2.120 stack in Docker Desktop on the
+  dev Mac, one subscriber, 30 sequential kitchen transitions): request→event p50 532 ms, **p95 543 ms**;
+  commit→event p95 539 ms. The steady ~0.5 s looks like Realtime's change-polling interval, not network time.
+  Load and hosted-environment measurements come in Phase 8.
 
 ## 10. Intelligence _(proposed, Phases 6–7)_
 

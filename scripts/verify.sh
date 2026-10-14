@@ -33,6 +33,9 @@ step "Ruff lint + format check (services/api)"
 step "mypy --strict (services/api)"
 (cd "$API" && .venv/bin/mypy)
 
+step "Generated API contracts are up to date"
+bash scripts/check-contracts.sh
+
 step "pytest unit tests (services/api)"
 (cd "$API" && .venv/bin/pytest -q -m "not integration")
 

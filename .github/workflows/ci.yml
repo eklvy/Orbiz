@@ -64,12 +64,16 @@ jobs:
           cache-dependency-path: services/api/pyproject.toml
       - run: pnpm install --frozen-lockfile
       - name: Start local Supabase (only the services the tests need)
-        run: pnpm exec supabase start -x studio,storage-api,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta,realtime
+        run: pnpm exec supabase start -x studio,storage-api,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta
       - run: pnpm exec supabase db reset
       - run: pnpm exec supabase test db
-      - name: API integration tests
+      - name: Install API
         run: |
           python -m venv services/api/.venv
           services/api/.venv/bin/pip install -e "services/api[dev]"
+      - name: Generated API contracts are up to date
+        run: bash scripts/check-contracts.sh
+      - name: API integration tests (incl. concurrency, Realtime latency, pg_cron expiry)
+        run: |
           eval "$(bash scripts/supabase-env.sh)"
-          cd services/api && .venv/bin/pytest -q -m integration
+          cd services/api && .venv/bin/pytest -q -m integration -s

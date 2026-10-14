@@ -6,3 +6,5 @@ services/
 ml/
 supabase/
 *.md
+packages/contracts/openapi.json
+packages/contracts/src/generated/

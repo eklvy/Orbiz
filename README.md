@@ -3,7 +3,7 @@
 Pre-order campus canteen food, pick a pickup slot, and collect it with a digital token instead of
 standing in a queue. Built by Team Orbiz for The NorthCap University.
 
-**Status:** Phase 1 (database, auth, RLS) complete. No ordering features exist yet. See
+**Status:** Phase 2 (ordering backend, stock, pickup slots, Realtime) complete. No user interfaces or real payments yet. See
 [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
 | Interface | Path | Dev URL |
@@ -73,5 +73,6 @@ CI (`.github/workflows/ci.yml`) runs the same checks.
 
 - [AGENTS.md](AGENTS.md): working rules, commands, conventions
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): system design, boundaries, workflows
+- [docs/API.md](docs/API.md): endpoints, error reasons, order lifecycle, Realtime subscriptions
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): feature map from the report and open decisions
 - [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md): phase status and verification log

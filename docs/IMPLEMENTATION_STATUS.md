@@ -3,7 +3,7 @@
 Status vocabulary: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `INCOMPLETE` · `COMPLETE`.
 A phase is `COMPLETE` only when its acceptance criteria were verified by commands actually run.
 
-Last updated: 2026-10-13 (Phase 1).
+Last updated: 2026-10-13 (Phase 2).
 
 ## Phase overview
 
@@ -11,7 +11,7 @@ Last updated: 2026-10-13 (Phase 1).
 |---|---|---|
 | 0 | Repository inspection, architecture, scaffolding, tooling | **COMPLETE** |
 | 1 | Database, authentication, authorization, RLS | **COMPLETE** |
-| 2 | Core backend, ordering, inventory, real-time events | NOT STARTED |
+| 2 | Core backend, ordering, inventory, real-time events | **COMPLETE** |
 | 3 | Student website + student mobile app | NOT STARTED |
 | 4 | Manager dashboard + POS/kitchen dashboard | NOT STARTED |
 | 5 | Payments, wallets, group orders, notifications, loyalty, budgets, specials/polls/reviews | NOT STARTED |
@@ -134,7 +134,7 @@ integration tests when the stack is up (and says SKIPPED otherwise), and a new C
 | ruff / ruff format / mypy `--strict` | Pass (23 files) |
 | `bash scripts/verify.sh` | "All checks passed." (all JS checks, builds, Python checks, DB reset, pgTAP, integration) |
 
-**Not verified:** the new CI `database` job hasn't run on GitHub, because Phase 1 hasn't been pushed.
+**CI:** Phase 1 was pushed as PR #1. All three jobs (TypeScript, Python, Database) passed on GitHub.
 
 ### Acceptance criteria
 
@@ -155,6 +155,89 @@ integration tests when the stack is up (and says SKIPPED otherwise), and a new C
 - There's no protection against removing the last admin. Admin management UIs arrive in later phases.
 - Staff lookup by email (for managers adding kitchen staff) is not implemented. It needs a server endpoint (Phase 4).
 - Docker Desktop crashed once during the first image pull (host disk briefly full). It recovered after a restart. This is environmental and not a code issue.
+
+---
+
+## Phase 2 — COMPLETE
+
+Branch `phase-2/ordering-inventory-realtime`, stacked on Phase 1 (PR #1, whose CI passed on GitHub, including the database job).
+
+### Decisions applied
+- D-2 (seats/crowd): **default implemented.** Crowd level and wait come from real order load only; no seat counts.
+- D-12 (stock model), D-17 (wait estimate): implemented as documented.
+- New D-18 (pay at counter) and D-19 (no-show policy): **open.** Defaults: no counter payment; no automatic no-show
+  handling (`ready_for_pickup` stays until the pickup code is verified).
+
+### Delivered
+
+**Migrations** (`supabase/migrations/20261014…`):
+
+| Migration | Contents |
+|---|---|
+| `120000_outlet_operations` | Outlet status (open / on_break / closed + reason + break end), time zone, token prefix, slot length/capacity, reservation TTL, kitchen concurrency; `outlet_hours` |
+| `120100_menu_inventory` | `menu_categories`, `menu_items` (paise prices, diet, kcal/protein, prep time, manual status, derived `stock_status`), `inventory`, append-only `inventory_movements`; status-derivation triggers |
+| `120200_pickup_slots` | `pickup_slots` with `CHECK (reserved_count <= capacity)` |
+| `120300_orders` | Order state machine table; `orders` (paise totals, idempotency key + request hash, reservation expiry, token, version, invariants as CHECKs), `order_items` (snapshots), `order_events`, `order_pickup_codes` (owner-only), token counters; RLS (incl. own-order visibility of outlet and slot) |
+| `120400_carts` | Server-side `carts` / `cart_items` (composite FKs keep items in the cart's outlet) |
+| `120500_order_functions` | `app` schema: `create_order`, `transition_order`, `confirm_order_payment` (system-only), `verify_pickup`, `expire_pending_orders`, `end_expired_breaks`, `set_outlet_status`, `adjust_stock`, `set_stock_tracking`, `set_item_manual_status`, `generate_pickup_slots`, `generate_upcoming_slots`, `outlet_queue_stats`, `order_queue_position` |
+| `120600_realtime_and_jobs` | Realtime publication (orders, order_events, outlets, menu_items, inventory, pickup_slots) and three `pg_cron` jobs |
+
+**Seeds:** `02_dev_menu.sql` adds fictional menus, hours, stock, and today plus the next 2 days of slots for the dev outlets.
+
+**API:** catalogue (`/outlets`, menu with filters, pickup slots), server-side `/cart`, `/orders` (create with
+`Idempotency-Key`, list with cursor, detail with events / queue position / owner-only pickup code, cancel), `/orders/transitions`,
+`/staff` (queue, transitions, pickup verification), `/manage` (outlet status, stock adjust/tracking/availability, slot
+generation). DB errors map to the envelope with `details.reason`. `Database.anon_transaction()` and
+`system_transaction()` were added. See [API.md](API.md).
+
+**Contracts:** `pnpm contracts:generate` writes `packages/contracts/openapi.json` and `src/generated/api.ts`. A staleness
+check is in `verify.sh` and CI, and a compile-time error-code drift guard is in place.
+
+### Verification (actually run, 2026-10-13)
+
+| Check | Result |
+|---|---|
+| `supabase db reset` | All 11 migrations and 2 seeds apply cleanly; 252 slots generated for the dev outlets |
+| pgTAP (`supabase test db`) | **166/166 pass**: Phase 1 (56) + menu/stock/outlet ops (31), order creation (29), lifecycle (38), jobs/Realtime publication (12) |
+| Unit tests (`pytest -m "not integration"`) | **48/48** (23 new: request fingerprint, payload rejects client prices, cursors, crowd thresholds, DB-error mapping) |
+| Integration tests (`pytest -m integration`) | **30/30** against real GoTrue + Postgres + Realtime (66 s) |
+| Concurrency: stock | 25 simultaneous buyers, 5 in stock → **exactly 5 succeed**, 20 get `insufficient_stock`; stock 0; 5 orders; 5 slot places; ledger = 5 |
+| Concurrency: slot | 25 buyers, slot capacity 2 → **exactly 2 succeed**, 23 `slot_full`, no stray rows |
+| Concurrency: HTTP | 6 real users through the ASGI app, 2 in stock → two 201s, four 409 `insufficient_stock` |
+| Atomicity | A later line failing rolls back earlier reservations (pgTAP: stock, slot and order count unchanged) |
+| Full flow over HTTP | create → (verified-payment stand-in) → token `T-n` + pickup code → staff queue (no code) → confirmed → preparing → ready → wrong code (counted and committed) → right code → completed; history lists it |
+| Authorization | Cross-user order read/cancel → 404; non-staff queue → 403; kitchen/student stock changes → 403; end users cannot confirm payments (42501); staff never see pickup codes |
+| Reservation expiry via **real pg_cron** | Overdue order cancelled by `system` within 11 s; stock and slot released |
+| Realtime | Kitchen saw a new order in 450 ms; student received 30/30 status changes, **p95 543 ms** request→event (p50 532), commit→event p95 539 ms; bystander student received **none** of them |
+| Contract drift guard | Adding a fake error code makes `tsc` fail; removing it passes |
+| ruff / mypy `--strict` / ESLint / tsc / Vitest / Next builds | Pass |
+| `bash scripts/verify.sh` | "All checks passed." |
+
+**Bugs found and fixed during verification:**
+- Queue position tied when two orders shared `placed_at`. It now breaks ties by token.
+- Two `generate_series`/union typing errors in the seed and slot generation.
+- Several of my own test expectations were wrong; the code was right.
+
+**Not verified:**
+- The new CI database steps haven't run on GitHub; Phase 2 isn't pushed yet.
+- Latency was measured locally only, with one subscriber and sequential changes. Load and hosted measurements are Phase 8.
+
+### Acceptance criteria
+- [x] A test client can create and track valid orders (HTTP flow test, Realtime test)
+- [x] Invalid transitions are rejected (pgTAP + HTTP; the table-driven state machine)
+- [x] Stock and capacity are protected against concurrent reservations (25-way DB races, 6-way HTTP race, CHECK constraints)
+- [x] Authorized clients receive real events, and unauthorized ones don't (Realtime isolation test)
+
+### Known limitations (Phase 2)
+- **No real payments yet (Phase 5).** Orders stay `payment_pending` and expire unless trusted server code confirms them.
+  Tests use a clearly labelled stand-in that calls the same system-only function the webhook will.
+- Refunds are only *marked* (`refund_status = required`); money movement is Phase 5.
+- Menu, category, hours and slot-capacity editing UIs and endpoints are Phase 4 (seeded or SQL for now). Kitchen stations and
+  assignments are Phase 4/6.
+- There's no general API rate limiting yet (only the 3-unpaid-orders cap and pickup-code lockout). Planned for Phase 8.
+- Carts aren't live-synced over Realtime (see above). Clients refetch.
+- Queue position and wait estimate are simple, transparent heuristics, not predictions.
+- Slot deactivation with existing reservations isn't guarded yet (no endpoint exposes it; Phase 4 must handle it).
 
 ---
 
