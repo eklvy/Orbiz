@@ -50,6 +50,12 @@ async def set_item(
         raise ApiError(404, "not_found", "Menu item not found")
     outlet_id = item["outlet_id"]
 
+    # Serialise this user's cart writes: two quick "Add" taps must not both try to create the
+    # cart (or both replace it). Released automatically at commit/rollback.
+    await conn.execute(
+        "select pg_advisory_xact_lock(hashtextextended('cart:' || %s::text, 0))",
+        (principal.user_id,),
+    )
     cur = await conn.execute(
         "select outlet_id from public.carts where user_id = %s for update", (principal.user_id,)
     )

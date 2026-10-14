@@ -27,6 +27,12 @@ jobs:
       - run: pnpm build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+      - name: Student mobile iOS + Android bundles
+        run: pnpm --filter @campuscart/student-mobile export:native
+        env:
+          EXPO_PUBLIC_API_BASE_URL: http://localhost:8100
+          EXPO_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
 
   api:
     name: Python API
@@ -77,3 +83,20 @@ jobs:
         run: |
           eval "$(bash scripts/supabase-env.sh)"
           cd services/api && .venv/bin/pytest -q -m integration -s
+      - name: Install Playwright Chromium
+        run: pnpm --filter @campuscart/student-web exec playwright install --with-deps chromium
+      - name: Student website end-to-end (desktop + mobile viewports)
+        run: |
+          bash scripts/web-env.sh student-web http://localhost:8100
+          cd apps/student-web && CI=1 pnpm exec playwright test
+      - name: Student mobile app end-to-end (React Native Web build)
+        run: |
+          bash scripts/web-env.sh student-mobile http://localhost:8100
+          cd apps/student-mobile && pnpm e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: |
+            apps/student-web/test-results
+            apps/student-mobile/test-results

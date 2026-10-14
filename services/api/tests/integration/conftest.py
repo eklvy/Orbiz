@@ -124,7 +124,9 @@ def manager(gotrue: httpx.Client) -> User:
 
 
 @pytest.fixture
-def outlet(sql: psycopg.Connection[dict[str, Any]], kitchen: User, manager: User) -> OutletFixture:
+def outlet(
+    sql: psycopg.Connection[dict[str, Any]], kitchen: User, manager: User
+) -> Iterator[OutletFixture]:
     """A fresh open outlet (fictional test data) staffed by the session kitchen/manager users."""
     outlet_id, chai, sandwich, slot, small_slot = (uuid.uuid4() for _ in range(5))
     slug = f"it-{outlet_id.hex[:10]}"
@@ -156,7 +158,10 @@ def outlet(sql: psycopg.Connection[dict[str, Any]], kitchen: User, manager: User
             " (%s, %s, 'kitchen_staff'), (%s, %s, 'manager')",
             (outlet_id, kitchen.id, outlet_id, manager.id),
         )
-    return OutletFixture(outlet_id, slug, chai, sandwich, slot, small_slot)
+    yield OutletFixture(outlet_id, slug, chai, sandwich, slot, small_slot)
+    # Orders are retained by design (financial history), so the outlet can't be deleted;
+    # deactivating hides it from the public catalogue of the shared dev database.
+    sql.execute("update public.outlets set is_active = false where id = %s", (outlet_id,))
 
 
 def confirm_payment(sql: psycopg.Connection[dict[str, Any]], order_id: uuid.UUID | str) -> None:

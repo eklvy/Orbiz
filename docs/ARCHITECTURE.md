@@ -1,6 +1,6 @@
 # CampusCart — Architecture
 
-Status: **Phase 2 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
+Status: **Phase 3 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
 phase that implements them and updated here when that happens.
 
 Requirement sources: `CampusCart_Team_Orbiz_Report.pdf/.docx` (Team Orbiz, Aug 2026) and the master
@@ -51,6 +51,7 @@ apps/
 packages/
   config/               shared tsconfig presets
   contracts/            shared API types generated from OpenAPI (+ error-envelope helpers)
+  client/               framework-free client logic shared by student web + mobile (API client, rules, validation)
 services/
   api/                  FastAPI backend — the only writer of business state
   intelligence/         inference boundary — README only until Phase 6C
@@ -213,6 +214,22 @@ An elapsed break counts as open immediately, and `pg_cron` flips it back within 
 **Wait estimate and crowd level (D-17, D-2).** From real orders only. Active orders due within 60 minutes each take
 their longest item's prep time, divided by the outlet's `concurrent_orders`. Crowd level is `low` up to 5 min,
 `medium` up to 15, and `high` above that. There are no seat counts and no sensors.
+
+## 8a. Student clients _(implemented, Phase 3)_
+
+- **Shared logic** in `@campuscart/client` with no React: a typed `openapi-fetch` client over the generated contracts,
+  error mapping, formatting, the order timeline, `canTransition()` read from `GET /orders/transitions` (clients never
+  re-encode the state machine), Zod forms mirroring DB constraints, Realtime helpers, and query keys. Each app adds a
+  thin TanStack Query hooks layer, because the web (React 19.3) and Expo (React 19.2.3) apps must not share one React instance.
+- **Data flow:** queries go to the API; Realtime events (and every reconnect) only *invalidate* queries, so the screen always
+  shows the API's authoritative state. `orders.version` drops stale or duplicate events.
+- **Auth:** Supabase Auth in the client. On the web the session is in `localStorage` (supabase-js default). On native, a
+  LargeSecureStore puts the AES key in the Keychain/Keystore and the encrypted session in AsyncStorage. Route guards are
+  UX only; the API and RLS enforce access.
+- **Checkout:** one idempotency key per distinct (outlet, slot, items) request, so retries can't double-order. The
+  payment step is honestly "not yet available" until Phase 5.
+- **Testing:** Playwright drives the production website build (desktop and phone viewports, axe-core accessibility, a
+  horizontal-overflow guard), and the Expo app's React Native Web build, against the real local backend.
 
 ## 9. Real-time
 

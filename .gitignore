@@ -44,3 +44,8 @@ ml/**/artifacts/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+test-results/
+playwright-report/
+
+# Machine-specific dev-server launch config (local ports differ per machine)
+.claude/launch.json

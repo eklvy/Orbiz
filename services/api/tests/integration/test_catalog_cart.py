@@ -126,3 +126,42 @@ def test_cart_rejects_unknown_items_and_bad_quantities(
         f"/api/v1/cart/items/{north_chai}", headers=student.headers, json={"quantity": 21}
     )
     assert too_many.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_concurrent_first_adds_create_one_cart(
+    settings: Any, outlet: OutletFixture, students: list[User]
+) -> None:
+    """Two quick taps on different items must both land (regression: second tap returned 500)."""
+    import asyncio
+
+    import httpx2 as httpx
+
+    from app.main import create_app
+
+    student = students[5]
+    app = create_app(settings)
+    async with (
+        app.router.lifespan_context(app),
+        httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://api.test"
+        ) as client,
+    ):
+        await client.delete("/api/v1/cart", headers=student.headers)
+        responses = await asyncio.gather(
+            *(
+                client.put(
+                    f"/api/v1/cart/items/{item}", headers=student.headers, json={"quantity": 1}
+                )
+                for item in (outlet.chai_id, outlet.sandwich_id)
+            )
+        )
+        assert [r.status_code for r in responses] == [200, 200], [r.text for r in responses]
+        cart = (await client.get("/api/v1/cart", headers=student.headers)).json()
+        assert cart["item_count"] == 2
+        await client.delete("/api/v1/cart", headers=student.headers)
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    return "asyncio"

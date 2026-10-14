@@ -3,7 +3,7 @@
 Pre-order campus canteen food, pick a pickup slot, and collect it with a digital token instead of
 standing in a queue. Built by Team Orbiz for The NorthCap University.
 
-**Status:** Phase 2 (ordering backend, stock, pickup slots, Realtime) complete. No user interfaces or real payments yet. See
+**Status:** Phase 3 (student website + student mobile app) complete. Manager/kitchen dashboards and real payments are later phases. See
 [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
 | Interface | Path | Dev URL |
@@ -11,7 +11,7 @@ standing in a queue. Built by Team Orbiz for The NorthCap University.
 | Student website | `apps/student-web` | http://localhost:3000 |
 | Manager dashboard | `apps/manager-dashboard` | http://localhost:3001 |
 | POS / kitchen dashboard | `apps/pos-dashboard` | http://localhost:3002 |
-| Student mobile app | `apps/student-mobile` | Phase 3 |
+| Student mobile app | `apps/student-mobile` | Expo dev server (see its README) |
 | API (FastAPI) | `services/api` | http://localhost:8000 (`/docs` for OpenAPI) |
 
 ## Prerequisites
@@ -47,6 +47,9 @@ Each app has its own `.env.example`. Copy it to `.env.local` in that app when th
 those values (Phase 3/4). The root [`.env.example`](.env.example) lists every variable and the phase that introduces it.
 
 ## Run
+
+Each client needs an env file pointing at the API and Supabase:
+`bash scripts/web-env.sh student-web` (and `student-mobile`), after `pnpm db:start`.
 
 ```bash
 pnpm dev:student-web        # :3000
