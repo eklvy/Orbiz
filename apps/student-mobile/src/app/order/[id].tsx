@@ -10,12 +10,7 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
-import {
-  LiveIndicator,
-  OrderStatusBadge,
-  PickupPass,
-  Timeline,
-} from "@/components/status";
+import { LiveIndicator, OrderStatusBadge, PickupPass, Timeline } from "@/components/status";
 import { RefundRequestCard } from "@/components/deals";
 import { ReviewCard, WalletPayCard } from "@/components/money";
 import { Button, Card, ErrorBox, Loading, Muted, Title, makeStyles } from "@/components/ui";
