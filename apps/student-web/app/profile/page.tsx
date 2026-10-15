@@ -3,6 +3,7 @@
 import { profileSchema, profileUpdate, queryKeys, type ProfileValues } from "@campuscart/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -50,6 +51,26 @@ export default function ProfilePage() {
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
         <p className="text-muted">{me.data.email}</p>
       </header>
+      <nav aria-label="Your account" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          ["/wallet", "Wallet"],
+          ["/rewards", "Rewards"],
+          ["/budget", "Budget"],
+          ["/notifications", "Notifications"],
+          ["/groups", "Group orders"],
+          ["/parties", "Party bookings"],
+          ["/splits", "Bill splits"],
+          ["/ratings", "Outlet ratings"],
+        ].map(([href, label]) => (
+          <Link
+            key={href}
+            href={href as string}
+            className="rounded-xl border border-line bg-surface px-3 py-3 text-center text-sm font-medium hover:border-primary hover:text-primary"
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
       <dl className="grid grid-cols-2 gap-3 rounded-xl border border-line bg-surface p-4 text-sm">
         <div>
           <dt className="text-muted">Account type</dt>

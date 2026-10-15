@@ -13,11 +13,12 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Countdown } from "@/components/countdown";
 import { LiveIndicator } from "@/components/live-indicator";
 import { OrderStatusBadge, OrderTimeline } from "@/components/order-status";
+import { PaymentPanel } from "@/components/payment-panel";
 import { PickupPass } from "@/components/pickup-pass";
 import { RefundRequest } from "@/components/refund-request";
+import { ReviewSection } from "@/components/review-form";
 import { Button } from "@/components/ui/button";
 import { ErrorState, InlineError, Skeleton } from "@/components/ui/states";
 import { getApi } from "@/lib/api";
@@ -77,24 +78,8 @@ export default function OrderPage() {
         Order status: {orderStatusLabel(o.status)}
       </p>
 
-      {o.status === "payment_pending" && o.reservation_expires_at && (
-        <section
-          className="grid gap-3 rounded-2xl border border-warn/40 bg-warn-soft p-5 text-warn"
-          aria-label="Payment"
-        >
-          <p className="font-semibold">
-            Awaiting payment — {o.pickup_slot ? "items and slot" : "deal"} held for{" "}
-            <Countdown until={o.reservation_expires_at} onElapsed={() => void order.refetch()} />
-          </p>
-          <p className="text-sm">
-            Online payment isn&apos;t available in this version of CampusCart yet. Your order
-            won&apos;t go to the kitchen until it&apos;s paid, and the hold is released
-            automatically when the timer ends.
-          </p>
-          <Button disabled className="justify-self-start">
-            Pay {formatPaise(o.total_paise)} (coming soon)
-          </Button>
-        </section>
+      {o.status === "payment_pending" && (
+        <PaymentPanel order={o} onExpired={() => void order.refetch()} />
       )}
 
       <PickupPass order={o} />
@@ -149,11 +134,24 @@ export default function OrderPage() {
             </li>
           ))}
         </ul>
+        {o.discount_paise > 0 && (
+          <div className="mt-3 flex justify-between border-t border-line pt-3 text-sm">
+            <span>Voucher</span>
+            <span>−{formatPaise(o.discount_paise)}</span>
+          </div>
+        )}
         <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold">
           <span>Total</span>
           <span>{formatPaise(o.total_paise)}</span>
         </div>
+        {o.loyalty_points != null && o.loyalty_points !== 0 && (
+          <p className="mt-1 text-right text-sm text-primary" data-testid="points-earned">
+            {o.loyalty_points > 0 ? `+${o.loyalty_points}` : o.loyalty_points} loyalty points
+          </p>
+        )}
       </section>
+
+      <ReviewSection order={o} />
 
       <RefundRequest order={o} />
 
