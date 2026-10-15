@@ -40,7 +40,8 @@ export function PollsSection({ outletId, slug }: { outletId: string; slug: strin
         const myVote = votedFor.get(poll.id);
         const open = poll.status === "open" && new Date(poll.closes_at).getTime() > openedAt;
         return (
-          <article
+          <div
+            role="group"
             key={poll.id}
             className="grid gap-3 rounded-xl border border-line bg-surface p-4"
             aria-label={poll.question}
@@ -91,7 +92,7 @@ export function PollsSection({ outletId, slug }: { outletId: string; slug: strin
                 );
               })}
             </ul>
-          </article>
+          </div>
         );
       })}
     </section>

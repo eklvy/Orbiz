@@ -161,7 +161,7 @@ test("today's special price and a live poll vote", async ({ page }, testInfo) =>
     await expect(
       page.getByRole("article", { name: "Rajma Chawal" }).getByTestId("special-price"),
     ).toContainText("₹64");
-    const poll = page.getByRole("article", { name: question });
+    const poll = page.getByRole("group", { name: question });
     await poll.getByRole("button", { name: /^Rajma Chawal: 0%\. Vote$/ }).click();
     await expect(
       poll.getByRole("button", { name: /^Rajma Chawal: 100%, your vote$/ }),
