@@ -3,7 +3,15 @@ import type { RealtimePostgresChangesPayload, SupabaseClient } from "@supabase/s
 export type RealtimeStatus = "connecting" | "live" | "reconnecting";
 
 export interface TableSubscription {
-  table: "orders" | "order_events" | "outlets" | "menu_items" | "inventory" | "pickup_slots";
+  table:
+    | "orders"
+    | "order_events"
+    | "outlets"
+    | "menu_items"
+    | "inventory"
+    | "pickup_slots"
+    | "refund_requests"
+    | "surplus_deals";
   /** PostgREST-style filter, e.g. `id=eq.<uuid>`. */
   filter?: string;
   onChange: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void;

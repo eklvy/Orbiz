@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CampusCartApiError,
+  canManage,
   canTransition,
   createApiClient,
   createStudentApi,
@@ -8,10 +9,15 @@ import {
   formatDayLabel,
   formatPaise,
   formatSlot,
+  formatTimeLeft,
   friendlyError,
   isNewerVersion,
   newIdempotencyKey,
+  orderStatusLabel,
+  paiseToRupeeInput,
+  parseRupeesToPaise,
   orderTimeline,
+  parsePickupQr,
   pickupQrPayload,
   profileUpdate,
   registerSchema,
@@ -49,6 +55,11 @@ describe("formatting", () => {
     expect(formatDayLabel("2026-10-15T07:45:00Z", "Asia/Kolkata", now)).toBe("Tomorrow");
     // 19:00 UTC on the 14th is already the 15th in IST.
     expect(formatDayLabel("2026-10-14T19:00:00Z", "Asia/Kolkata", now)).toBe("Tomorrow");
+  });
+
+  it("formats staff time-left as m:ss under an hour, else hours and minutes", () => {
+    expect(formatTimeLeft(125_000)).toBe("2:05");
+    expect(formatTimeLeft(27_298_000)).toBe("7 h 34 min");
   });
 
   it("formats countdowns and never goes negative", () => {
@@ -224,5 +235,56 @@ describe("api client", () => {
     const keys = new Set(Array.from({ length: 100 }, newIdempotencyKey));
     expect(keys.size).toBe(100);
     expect([...keys][0]).toMatch(/^checkout-.{8,}/);
+  });
+});
+
+describe("no-shows, deals and the counter (Phase 4)", () => {
+  it("shows a not-collected order as ended, with no timeline", () => {
+    expect(orderStatusLabel("no_show")).toBe("Not collected");
+    expect(orderTimeline("no_show")).toEqual([]);
+  });
+
+  it("reads the Digital Food Pass QR a counter scanner types in", () => {
+    const id = "0b6f0c2e-6a4b-4c1d-9f1e-2a3b4c5d6e7f";
+    const payload = pickupQrPayload({ id, pickup_code: "AB2CD3" });
+    expect(payload && parsePickupQr(payload)).toEqual({ orderId: id, code: "AB2CD3" });
+    expect(parsePickupQr(`  campuscart:pickup:${id.toUpperCase()}:ab2cd3 `)).toEqual({
+      orderId: id,
+      code: "AB2CD3",
+    });
+    expect(parsePickupQr("AB2CD3")).toBeNull();
+    expect(parsePickupQr(`campuscart:pickup:not-a-uuid:AB2CD3`)).toBeNull();
+    expect(parsePickupQr(`campuscart:pickup:${id}:AB2CD3;drop table`)).toBeNull();
+  });
+
+  it("decides who sees manager tools from /me (UX only; the server enforces)", () => {
+    const me = (roles: { outlet_id: string; role: "manager" | "kitchen_staff" }[], admin = false) =>
+      ({
+        platform_roles: admin ? ["admin"] : [],
+        outlet_roles: roles.map((r) => ({ ...r, outlet_slug: "x", outlet_name: "X" })),
+      }) as unknown as Parameters<typeof canManage>[0];
+    expect(canManage(me([{ outlet_id: "a", role: "kitchen_staff" }]))).toBe(false);
+    expect(canManage(me([{ outlet_id: "a", role: "manager" }]), "a")).toBe(true);
+    expect(canManage(me([{ outlet_id: "a", role: "manager" }]), "b")).toBe(false);
+    expect(canManage(me([], true), "b")).toBe(true);
+  });
+});
+
+describe("manager money input", () => {
+  it("parses typed rupees into integer paise without float error", () => {
+    expect(parseRupeesToPaise("70")).toBe(7000);
+    expect(parseRupeesToPaise("70.5")).toBe(7050);
+    expect(parseRupeesToPaise("0.29")).toBe(29); // 0.29 * 100 is 28.999… in floating point
+    expect(parseRupeesToPaise("₹1,250.75")).toBe(125075);
+    expect(parseRupeesToPaise("0")).toBeNull();
+    expect(parseRupeesToPaise("12.345")).toBeNull();
+    expect(parseRupeesToPaise("-5")).toBeNull();
+    expect(parseRupeesToPaise("abc")).toBeNull();
+  });
+
+  it("formats paise back for editing", () => {
+    expect(paiseToRupeeInput(7000)).toBe("70");
+    expect(paiseToRupeeInput(7050)).toBe("70.50");
+    expect(paiseToRupeeInput(29)).toBe("0.29");
   });
 });

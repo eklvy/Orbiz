@@ -17,6 +17,7 @@ class OutletMembership(BaseModel):
     outlet_id: UUID
     outlet_slug: str
     outlet_name: str
+    outlet_timezone: str
     role: OutletRole
 
 

@@ -22,6 +22,8 @@ from app.modules.orders.schemas import (
     OrderItem,
     OrderPage,
     OrderStatus,
+    RefundRequestSummary,
+    StaffOrder,
     TransitionRule,
 )
 
@@ -33,12 +35,16 @@ _ORDER_SELECT = """
            o.item_count, o.reservation_expires_at, o.placed_at, o.confirmed_at, o.preparing_at,
            o.ready_at, o.completed_at, o.cancelled_at, o.cancel_reason,
            o.cancelled_by::text as cancelled_by, o.version, o.created_at, o.updated_at,
+           o.source_deal_id, o.no_show_at,
+           case when o.status = 'ready_for_pickup'
+                then private.pickup_deadline(o.ready_at, s.ends_at, ot.no_show_grace_minutes)
+           end as pickup_deadline,
            ot.id as outlet_id, ot.slug as outlet_slug, ot.name as outlet_name,
            s.id as slot_id, s.starts_at as slot_starts_at, s.ends_at as slot_ends_at,
            pc.code as pickup_code
     from public.orders o
     join public.outlets ot on ot.id = o.outlet_id
-    join public.pickup_slots s on s.id = o.pickup_slot_id
+    left join public.pickup_slots s on s.id = o.pickup_slot_id
     left join public.order_pickup_codes pc on pc.order_id = o.id
 """
 
@@ -80,7 +86,8 @@ async def _load_orders(conn: Connection, ids: list[UUID]) -> dict[UUID, dict[str
     rows = {row["id"]: row for row in await cur.fetchall()}
 
     cur = await conn.execute(
-        "select id, order_id, menu_item_id, item_name, unit_price_paise, quantity, line_total_paise"
+        "select id, order_id, menu_item_id, item_name, unit_price_paise, quantity,"
+        " line_total_paise, is_packaged"
         " from public.order_items where order_id = any(%s) order by item_name",
         (list(rows),),
     )
@@ -102,11 +109,15 @@ async def _load_orders(conn: Connection, ids: list[UUID]) -> dict[UUID, dict[str
                 "slug": row["outlet_slug"],
                 "name": row["outlet_name"],
             },
-            "pickup_slot": {
-                "id": row["slot_id"],
-                "starts_at": row["slot_starts_at"],
-                "ends_at": row["slot_ends_at"],
-            },
+            "pickup_slot": (
+                {
+                    "id": row["slot_id"],
+                    "starts_at": row["slot_starts_at"],
+                    "ends_at": row["slot_ends_at"],
+                }
+                if row["slot_id"] is not None
+                else None
+            ),
             "queue_position": position,
             "items": items[order_id],
         }
@@ -125,7 +136,20 @@ async def get_order(conn: Connection, order_id: UUID) -> OrderDetail:
         (order_id,),
     )
     events = [OrderEvent.model_validate(e) for e in await cur.fetchall()]
-    return OrderDetail.model_validate({**loaded[order_id], "events": events})
+    # RLS: visible to the student who asked and to the outlet's managers.
+    cur = await conn.execute(
+        "select id, status::text as status, amount_paise, reason, decision_note, created_at,"
+        " decided_at from public.refund_requests where order_id = %s",
+        (order_id,),
+    )
+    refund = await cur.fetchone()
+    return OrderDetail.model_validate(
+        {
+            **loaded[order_id],
+            "events": events,
+            "refund_request": RefundRequestSummary.model_validate(refund) if refund else None,
+        }
+    )
 
 
 async def create_order(conn: Connection, payload: OrderCreate, idempotency_key: str) -> OrderDetail:
@@ -203,23 +227,53 @@ async def require_outlet_staff(conn: Connection, outlet_id: UUID) -> None:
 
 async def outlet_queue(
     conn: Connection, outlet_id: UUID, statuses: list[OrderStatus] | None
-) -> list[Order]:
+) -> list[StaffOrder]:
     await require_outlet_staff(conn, outlet_id)
     wanted = list(statuses or ACTIVE_STATUSES)
     cur = await conn.execute(
         """
         select o.id from public.orders o
-        join public.pickup_slots s on s.id = o.pickup_slot_id
+        left join public.pickup_slots s on s.id = o.pickup_slot_id
         where o.outlet_id = %s and o.status::text = any(%s)
-        order by s.starts_at, o.placed_at nulls last, o.token_number nulls last
+        order by coalesce(s.starts_at, o.ready_at), o.placed_at nulls last,
+                 o.token_number nulls last
         limit 200
         """,
         (outlet_id, wanted),
     )
     ids = [r["id"] for r in await cur.fetchall()]
+    return await staff_orders(conn, ids)
+
+
+async def staff_orders(conn: Connection, ids: list[UUID]) -> list[StaffOrder]:
+    """Orders for the counter, in the given order: with the customer's name and, for deal
+    orders, the token the food originally belonged to."""
     loaded = await _load_orders(conn, ids)
+    cur = await conn.execute(
+        "select order_id, customer_name from app.order_customer_names(%s)", (ids,)
+    )
+    names = {r["order_id"]: r["customer_name"] for r in await cur.fetchall()}
+    cur = await conn.execute(
+        "select o.id, src.token_label from public.orders o"
+        " join public.surplus_deals d on d.id = o.source_deal_id"
+        " join public.orders src on src.id = d.source_order_id"
+        " where o.id = any(%s)",
+        (ids,),
+    )
+    sources = {r["id"]: r["token_label"] for r in await cur.fetchall()}
     # Staff never receive pickup codes (RLS already hides them; this is belt and braces).
-    return [Order.model_validate({**loaded[i], "pickup_code": None}) for i in ids]
+    return [
+        StaffOrder.model_validate(
+            {
+                **loaded[i],
+                "pickup_code": None,
+                "customer_name": names.get(i),
+                "deal_source_token": sources.get(i),
+            }
+        )
+        for i in ids
+        if i in loaded
+    ]
 
 
 async def list_transition_rules(conn: Connection) -> list[TransitionRule]:

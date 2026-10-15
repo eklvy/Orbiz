@@ -1,6 +1,6 @@
 # CampusCart — Architecture
 
-Status: **Phase 3 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
+Status: **Phase 4 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
 phase that implements them and updated here when that happens.
 
 Requirement sources: `CampusCart_Team_Orbiz_Report.pdf/.docx` (Team Orbiz, Aug 2026) and the master
@@ -46,12 +46,13 @@ order before leaving class, arrive at the chosen slot, and collect food without 
 apps/
   student-web/          Next.js App Router, student website             (Phase 3)
   student-mobile/       Expo app — README only until Phase 3            (Phase 3)
-  manager-dashboard/    Next.js, outlet-scoped manager console          (Phase 4)
-  pos-dashboard/        Next.js, kitchen queue / counter                 (Phase 4)
+  manager-dashboard/    Next.js, outlet-scoped manager console          (Phase 4, implemented)
+  pos-dashboard/        Next.js, kitchen queue / counter                 (Phase 4, implemented)
 packages/
   config/               shared tsconfig presets
   contracts/            shared API types generated from OpenAPI (+ error-envelope helpers)
-  client/               framework-free client logic shared by student web + mobile (API client, rules, validation)
+  client/               framework-free client logic shared by all four clients (API clients, rules, validation)
+  staff-web/            React pieces shared by the two dashboards: sign-in gate, live kitchen board, deals panel, UI
 services/
   api/                  FastAPI backend — the only writer of business state
   intelligence/         inference boundary — README only until Phase 6C
@@ -231,10 +232,42 @@ their longest item's prep time, divided by the outlet's `concurrent_orders`. Cro
 - **Testing:** Playwright drives the production website build (desktop and phone viewports, axe-core accessibility, a
   horizontal-overflow guard), and the Expo app's React Native Web build, against the real local backend.
 
+## 8b. Dashboards, refunds desk and the no-show policy _(implemented, Phase 4)_
+
+- **Two staff apps, one board (D-7).** `apps/pos-dashboard` (kitchen staff; counter tablets) and
+  `apps/manager-dashboard` (managers/admins; overview, kitchen, menu & stock, refunds, slots & hours, staff,
+  settings) both render `KitchenBoard` from `packages/staff-web`. Buttons come from the server's transition
+  table (`canTransition`); every action is re-checked by `app.*` functions. The staff queue returns the
+  customer's name (`app.order_customer_names`, staff of that outlet only) but never pickup codes. Pickup is
+  verified by typed code or by a scanner typing the Digital Food Pass QR payload. Both apps render nothing on
+  the server (everything is behind sign-in), so env values are read only in the browser.
+- **Manager writes** are `app.*` SECURITY DEFINER functions with explicit authorisation: `save_menu_item`,
+  `save_menu_category`/`delete_menu_category`, `set_outlet_hours`, `update_outlet_settings`,
+  `update_pickup_slot` (capacity never below booked; deactivating only stops new bookings),
+  `add_outlet_staff`/`remove_outlet_staff`/`list_outlet_staff` (email lookup confined to managers). Menu,
+  category and hours changes are audited (derived stock-status updates are excluded).
+- **Refunds desk (F11).** `refund_requests` (one per order, full amount, 24 h after pickup, not for no-shows).
+  Managers approve (order `refund_status → required`) or decline with a note, singly or "approve all pending";
+  each decision is an order event and an audit-log row. Refunds the system already owes (paid orders
+  cancelled/rejected) are listed without a request. Money moves in Phase 5.
+- **No-show policy (D-19, decided by the product owner).** Pickup deadline = `greatest(ready_at, slot end) +
+  no_show_grace_minutes` (default 15), one SQL definition (`private.pickup_deadline`) used by the job and the
+  API. `app.process_no_shows` (pg_cron, every minute, `FOR UPDATE SKIP LOCKED`) moves overdue orders
+  `ready_for_pickup → no_show` (system-only transition, no refund), returns packaged lines
+  (`order_items.is_packaged`, snapshotted from `menu_items.is_packaged`) to stock with ledger reason
+  `no_show_return`, and lists the prepared lines as one `surplus_deals` row at `no_show_deal_discount_percent`
+  (default 50; per-line integer paise, rounded half up) for `deal_ttl_minutes` (default 30).
+  `app.claim_deal` creates a slot-less unpaid order that holds the deal (idempotent; the original student
+  can't buy it back); cancelling or expiry puts the deal back on sale; `app.confirm_order_payment` marks a
+  deal sold and moves its order straight to `ready_for_pickup` with a new token and pickup code, which the
+  counter sees live. `app.expire_surplus_deals` (pg_cron) records unsold deals. Uncollected deal orders
+  become `no_show` but are not relisted. A partial unique index allows one paid order per deal.
+- **Lock order** extends §7: outlet → inventory (by id) → slot → order → deal → refund request.
+
 ## 9. Real-time
 
 - **Chosen (Phase 2): Supabase Realtime `postgres_changes`** on `orders`, `order_events`, `outlets`,
-  `menu_items`, `inventory` and `pickup_slots`, filtered per subscriber by RLS. Every important change is committed
+  `menu_items`, `inventory` and `pickup_slots` (Phase 4 adds `surplus_deals` and `refund_requests`), filtered per subscriber by RLS. Every important change is committed
   (with its `order_events` row) before Realtime sees it, so the database stays the source of truth and no outbox is
   needed yet. Not published: `carts` and `cart_items` (Realtime doesn't apply RLS to DELETE events, which would leak
   other users' keys), `order_pickup_codes` and `inventory_movements`.

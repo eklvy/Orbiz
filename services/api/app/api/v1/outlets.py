@@ -7,6 +7,8 @@ from fastapi import APIRouter, Query
 from app.api.deps import Db
 from app.modules.catalog import service
 from app.modules.catalog.schemas import Diet, Menu, Outlet, OutletDetail, PickupSlot
+from app.modules.deals import service as deals
+from app.modules.deals.schemas import Deal
 
 router = APIRouter(prefix="/outlets", tags=["catalog"])
 
@@ -59,3 +61,10 @@ async def list_pickup_slots(
         return await service.list_pickup_slots(
             conn, outlet_id, on_date=on_date, include_full=include_full
         )
+
+
+@router.get("/{outlet_id}/deals", response_model=list[Deal])
+async def list_deals(outlet_id: UUID, db: Db) -> list[Deal]:
+    """Surplus deals on sale now: prepared food from uncollected orders at a discount (D-19)."""
+    async with db.anon_transaction() as conn:
+        return await deals.list_outlet_deals(conn, outlet_id)

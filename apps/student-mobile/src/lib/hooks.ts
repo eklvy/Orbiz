@@ -73,6 +73,25 @@ export function usePickupSlots(outletId: string | undefined) {
   });
 }
 
+/** Surplus deals on sale (D-19): Realtime for new deals, plus a 30 s refresh for ones that end. */
+export function useDeals(outletId: string | undefined) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!outletId) return;
+    return subscribeToTable(supabase, {
+      table: "surplus_deals",
+      filter: `outlet_id=eq.${outletId}`,
+      onChange: () => void queryClient.invalidateQueries({ queryKey: queryKeys.deals(outletId) }),
+    });
+  }, [outletId, queryClient]);
+  return useQuery({
+    queryKey: queryKeys.deals(outletId ?? ""),
+    queryFn: () => api.listDeals(outletId as string),
+    enabled: Boolean(outletId),
+    refetchInterval: 30_000,
+  });
+}
+
 export function useCart() {
   const { session } = useAuth();
   return useQuery({ queryKey: queryKeys.cart, queryFn: api.getCart, enabled: Boolean(session) });

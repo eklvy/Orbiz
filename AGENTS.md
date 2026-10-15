@@ -25,6 +25,7 @@ Work happens in strict phases: 0 → 1 → 2 → 3 → 4 → 5 → 6A → 6B →
 apps/student-web  apps/manager-dashboard  apps/pos-dashboard   Next.js 16 (ports 3000/3001/3002)
 apps/student-mobile                                            Expo (Phase 3)
 packages/contracts   shared API types      packages/config   tsconfig presets
+packages/client      framework-free client logic (all apps)   packages/staff-web   React for both dashboards
 services/api         FastAPI (only writer of business state)
 supabase/            migrations, seeds, pgTAP tests (schema source of truth)
 ml/  services/intelligence/   offline training / inference boundary (Phases 6–7)
@@ -59,6 +60,7 @@ pnpm contracts:generate            # after any API schema change: regenerate @ca
 bash scripts/web-env.sh student-web http://localhost:8000      # write a client app's env from the local stack
 bash scripts/web-env.sh student-mobile http://<LAN-IP>:8000    # (mobile writes apps/student-mobile/.env)
 (cd apps/student-web && pnpm exec playwright test)             # website E2E (starts/reuses API :8100 + web :3100)
+(cd apps/pos-dashboard && pnpm exec playwright test)           # POS E2E (web :3102); manager-dashboard uses :3101
 pnpm --filter @campuscart/student-mobile e2e                   # mobile app (RN Web build) E2E
 pnpm --filter @campuscart/student-mobile export:native         # iOS + Android bundles
 ```
@@ -87,7 +89,8 @@ pnpm --filter @campuscart/student-mobile export:native         # iOS + Android b
 - RLS helpers live in the `private` schema (`private.is_admin()`, `private.is_outlet_staff(id)`, `private.is_outlet_manager(id)`); `SECURITY DEFINER` functions must `set search_path = ''`.
 - User-scoped API work goes through `Database.user_transaction(principal)` so RLS applies; never query user data on a bare privileged connection. Public catalogue reads use `anon_transaction()`; trusted server operations (payments, jobs) use `system_transaction()`.
 - Multi-row business invariants live in `SECURITY DEFINER` functions in the `app` schema (not exposed by PostgREST). They authorise explicitly, lock in the order outlet → inventory (by id) → slot → order, and fail with `private.fail(<http status>, '<reason>', '<message>')` (SQLSTATE `CC<status>`), which the API maps to the error envelope.
-- Order status changes only via `app.transition_order` (rules in `order_status_transitions`), `app.verify_pickup`, `app.confirm_order_payment` (system-only) or `app.expire_pending_orders` (cron). Never `update orders set status` elsewhere.
+- Order status changes only via `app.transition_order` (rules in `order_status_transitions`), `app.verify_pickup`, `app.confirm_order_payment` (system-only), `app.expire_pending_orders` or `app.process_no_shows` (cron). Never `update orders set status` elsewhere.
+- Dashboards share React code via `packages/staff-web` (React 19.3, same as the Next apps); its Tailwind classes are picked up through `@source` in each app's `globals.css`.
 - Client apps: shared, framework-free logic goes in `packages/client` (no React there, because web and Expo use different React versions). UI must never compute prices, totals, availability or allowed transitions; read them from the API (`canTransition` uses `GET /orders/transitions`).
 - Every user-visible flow added to a client gets a Playwright test against the real backend; keep the axe and no-horizontal-scroll checks green.
 - Tests that need a "paid" order use the labelled stand-in `confirm_payment()` / `tests.pay()`, which calls the same system-only function the Phase 5 webhook will.

@@ -15,7 +15,7 @@ and committed as `packages/contracts/openapi.json`. TypeScript types are generat
   `code` is one of `validation_error`, `unauthenticated`, `forbidden`, `not_found`, `conflict`, `rate_limited`,
   `service_unavailable`, `internal_error`. Business failures add a machine-readable `details.reason` (table below).
 - **Request IDs:** every response carries `X-Request-ID`. Send your own (≤ 64 safe characters) to correlate.
-- **Idempotency:** `POST /orders` requires `Idempotency-Key` (8–100 chars, unique per checkout attempt). A retry with the
+- **Idempotency:** `POST /orders` and `POST /deals/{id}/claim` require `Idempotency-Key` (8–100 chars, unique per checkout attempt). A retry with the
   same key and body returns the original order. The same key with a different body gives `409 idempotency_key_reused`.
 - **Pagination:** `GET /orders` is cursor-based. Pass back `next_cursor` as `?cursor=`.
 - **Visibility:** an order you may not see returns `404`, not `403`, so its existence isn't revealed.
@@ -43,6 +43,26 @@ and committed as `packages/contracts/openapi.json`. TypeScript types are generat
 | `PUT /manage/menu-items/{id}/stock-tracking` | outlet manager / admin | Turn quantity tracking on or off, set quantity and low threshold |
 | `PUT /manage/menu-items/{id}/availability` | outlet manager / admin | Manual `available` / `low` / `sold_out` |
 | `POST /manage/outlets/{id}/pickup-slots/generate` | outlet manager / admin | Create a date's slots from opening hours (idempotent) |
+| `GET /outlets/{id}/deals` | public | Surplus deals on sale now (prepared food from uncollected orders, D-19), server-priced |
+| `POST /deals/{id}/claim` | signed in | Buy a deal: creates an unpaid order (no slot) holding the deal; once paid it is `ready_for_pickup` straight away |
+| `POST /orders/{id}/refund-request` | owner | Ask for a refund on a collected order (within 24 h). Not allowed for `no_show` |
+| `GET /staff/outlets/{id}/deals` | outlet staff | Deals listed in the last 24 h with source token, buyer token and status |
+| `POST /staff/deals/{id}/withdraw` | outlet staff | Take an on-sale deal off sale (reason required) |
+| `GET /manage/outlets`, `GET /manage/outlets/{id}` | manager / admin | Managed outlets (admins: all) with settings, hours and live load |
+| `PATCH /manage/outlets/{id}/settings` | manager / admin | Name/location/description, slot defaults, hold time, kitchen concurrency, no-show grace, deal discount and listing time |
+| `PUT /manage/outlets/{id}/hours` | manager / admin | Replace the weekly opening hours (no overlaps) |
+| `GET /manage/outlets/{id}/summary` | manager / admin | Today's real figures: paid orders by status, paid total, refunds owed, no-shows, deals |
+| `GET /manage/outlets/{id}/menu` | manager / admin | Every item incl. archived, with stock detail and today's order counts |
+| `POST /manage/outlets/{id}/menu-items`, `PUT /manage/menu-items/{id}` | manager / admin | Create / replace an item (integer paise, packaged flag, archive via `is_active`) |
+| `POST /manage/outlets/{id}/categories`, `PUT/DELETE /manage/categories/{id}` | manager / admin | Categories (deleting un-categorises items) |
+| `GET /manage/outlets/{id}/pickup-slots?date=`, `PATCH /manage/pickup-slots/{id}` | manager / admin | All slots of a date; change capacity (not below booked) or stop/resume bookings |
+| `GET/POST /manage/outlets/{id}/staff`, `DELETE /manage/outlets/{id}/staff/{user}` | manager / admin | Staff list with emails; add kitchen staff by email; remove kitchen staff (admins: any role) |
+| `GET /manage/outlets/{id}/refunds` | manager / admin | Refunds desk: pending requests, recent decisions, refunds owed, median decision time |
+| `POST /manage/refund-requests/{id}/decision`, `POST /manage/outlets/{id}/refunds/approve-all` | manager / admin | Approve (refund becomes owed; paid out in Phase 5) or decline with a note; approve all pending |
+
+The staff queue returns `StaffOrder`: an order plus `customer_name` and, for deal orders, `deal_source_token`
+(never the pickup code). Every order carries `pickup_deadline` while `ready_for_pickup`, `no_show_at`, and
+`source_deal_id`; `pickup_slot` is `null` for deal orders. `GET /me` memberships include `outlet_timezone`.
 
 Payment confirmation has **no endpoint**. Only trusted server code can mark an order paid
 (`app.confirm_order_payment`, `service_role`). Phase 5 calls it after verifying the payment with Razorpay.
@@ -56,6 +76,10 @@ payment_pending ──(verified payment, system)──► placed ──► confi
  cancelled                                          ▼              cancelled       cancelled
                                             cancelled / rejected
 ```
+
+Phase 4 adds two system-only moves: `ready_for_pickup → no_show` (not collected by the pickup deadline:
+no refund, packaged items restocked, prepared items listed as a deal; `app.process_no_shows`, pg_cron every
+minute) and `payment_pending → ready_for_pickup` (a paid surplus-deal order: the food is already at the counter).
 
 `GET /orders/transitions` returns the authoritative table, with each move's actor, payment requirement, whether it
 needs a reason, whether it releases stock and/or the slot, and whether a refund becomes owed (`refund_status: required`,
@@ -77,6 +101,12 @@ settled in Phase 5). No transition is reversible.
 | `invalid_pickup_code` / `pickup_code_locked` | 422 / 429 | Wrong code / 5 wrong attempts |
 | `cart_outlet_mismatch` | 409 | Cart holds another outlet's items (`replace_cart: true` to switch) |
 | `forbidden` | 403 | Not a manager of that outlet |
+| `deal_not_found` / `deal_unavailable` / `own_deal` | 404 / 409 / 409 | Unknown deal / already held, sold or ended / it came from your own uncollected order |
+| `refund_not_allowed` / `refund_window_closed` / `refund_already_requested` / `refund_already_owed` / `no_show_not_refundable` | 409 | Refund request rules |
+| `already_decided` / `refund_request_not_found` | 409 / 404 | Refund desk |
+| `duplicate_name` / `invalid_price` / `category_not_found` / `invalid_hours` / `overlapping_hours` / `invalid_setting` | 409 / 422 | Menu, hours and settings validation |
+| `capacity_below_reserved` / `slot_not_found` | 409 / 404 | Slot edits |
+| `user_not_found` / `already_staff` / `staff_not_found` | 404 / 409 / 404 | Staff management |
 
 ## Realtime
 
@@ -86,6 +116,8 @@ Subscribe with Supabase Realtime (`postgres_changes`) using the user's access to
 |---|---|
 | `orders`, `order_events` | The order's owner; staff of its outlet (filter e.g. `outlet_id=eq.<id>`) |
 | `outlets`, `menu_items`, `inventory`, `pickup_slots` | Anyone who can see the row (public catalogue) |
+| `surplus_deals` | On-sale deals: anyone; all deals: the outlet's staff; a buyer: deals they hold or bought |
+| `refund_requests` | The student who asked; the outlet's managers |
 
 Not published: carts (Realtime doesn't filter DELETE events by RLS), pickup codes, and the stock ledger. Clients must
 refetch authoritative state on (re)connect and use `orders.version` to ignore stale or duplicate events.

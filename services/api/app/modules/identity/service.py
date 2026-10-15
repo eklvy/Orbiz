@@ -31,7 +31,8 @@ async def get_me(conn: Connection, principal: Principal) -> Me:
 
     cur = await conn.execute(
         """
-        select s.outlet_id, o.slug as outlet_slug, o.name as outlet_name, s.role::text as role
+        select s.outlet_id, o.slug as outlet_slug, o.name as outlet_name,
+               o.timezone as outlet_timezone, s.role::text as role
         from public.outlet_staff s
         join public.outlets o on o.id = s.outlet_id
         where s.user_id = %s

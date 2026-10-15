@@ -93,6 +93,14 @@ jobs:
         run: |
           bash scripts/web-env.sh student-mobile http://localhost:8100
           cd apps/student-mobile && pnpm e2e
+      - name: POS / kitchen dashboard end-to-end (desktop + tablet)
+        run: |
+          bash scripts/web-env.sh pos-dashboard http://localhost:8100
+          cd apps/pos-dashboard && CI=1 pnpm exec playwright test
+      - name: Manager dashboard end-to-end (desktop + mobile viewports)
+        run: |
+          bash scripts/web-env.sh manager-dashboard http://localhost:8100
+          cd apps/manager-dashboard && CI=1 pnpm exec playwright test
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -100,3 +108,5 @@ jobs:
           path: |
             apps/student-web/test-results
             apps/student-mobile/test-results
+            apps/pos-dashboard/test-results
+            apps/manager-dashboard/test-results

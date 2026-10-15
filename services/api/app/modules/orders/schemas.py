@@ -10,6 +10,7 @@ OrderStatus = Literal[
     "confirmed",
     "preparing",
     "ready_for_pickup",
+    "no_show",
     "completed",
     "cancelled",
     "rejected",
@@ -60,6 +61,8 @@ class OrderItem(BaseModel):
     unit_price_paise: int
     quantity: int
     line_total_paise: int
+    # Packaged items go back into stock if the order is not collected (D-19).
+    is_packaged: bool
 
 
 class OrderEvent(BaseModel):
@@ -71,10 +74,26 @@ class OrderEvent(BaseModel):
     created_at: datetime
 
 
+RefundRequestStatus = Literal["pending", "approved", "declined"]
+
+
+class RefundRequestSummary(BaseModel):
+    id: UUID
+    status: RefundRequestStatus
+    amount_paise: int
+    reason: str
+    decision_note: str | None
+    created_at: datetime
+    decided_at: datetime | None
+
+
 class Order(BaseModel):
     id: UUID
     outlet: OutletRef
-    pickup_slot: PickupSlotRef
+    # None for a surplus-deal order: the food is already at the counter.
+    pickup_slot: PickupSlotRef | None
+    # Set when this order bought a surplus deal (food from another student's uncollected order).
+    source_deal_id: UUID | None
     status: OrderStatus
     payment_status: PaymentStatus
     refund_status: RefundStatus
@@ -93,6 +112,9 @@ class Order(BaseModel):
     cancelled_at: datetime | None
     cancel_reason: str | None
     cancelled_by: OrderActor | None
+    # While ready_for_pickup: when the order becomes a no-show if not collected (D-19).
+    pickup_deadline: datetime | None
+    no_show_at: datetime | None
     queue_position: int | None
     version: int
     created_at: datetime
@@ -102,6 +124,15 @@ class Order(BaseModel):
 
 class OrderDetail(Order):
     events: list[OrderEvent]
+    refund_request: RefundRequestSummary | None
+
+
+class StaffOrder(Order):
+    """An order as the counter sees it: never the pickup code, but the customer's name."""
+
+    customer_name: str | None
+    # For a deal order: the token of the uncollected order the food came from.
+    deal_source_token: str | None
 
 
 class OrderPage(BaseModel):

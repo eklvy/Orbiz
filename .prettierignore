@@ -11,3 +11,4 @@ packages/contracts/src/generated/
 apps/student-mobile/dist-native/
 apps/student-mobile/dist-web/
 apps/student-mobile/.expo/
+apps/student-mobile/expo-env.d.ts

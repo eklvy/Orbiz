@@ -146,4 +146,31 @@ returns integer
 language sql
 as $$ select reserved_count from public.pickup_slots where id = p_slot; $$;
 
+-- Phase 4: kitchen A takes a paid order through to ready_for_pickup, then back to superuser.
+create or replace function tests.kitchen_ready(p_order uuid)
+returns void
+language plpgsql
+as $$
+begin
+  perform tests.authenticate_as('10000000-0000-4000-a000-000000000003');
+  perform app.transition_order(p_order, 'confirmed');
+  perform app.transition_order(p_order, 'preparing');
+  perform app.transition_order(p_order, 'ready_for_pickup');
+  perform tests.as_superuser();
+end;
+$$;
+
+-- Moves a ready order (and its slot) into the past so its pickup deadline has passed.
+create or replace function tests.make_overdue(p_order uuid, p_minutes integer default 30)
+returns void
+language plpgsql
+as $$
+begin
+  update public.orders set ready_at = now() - make_interval(mins => p_minutes + 20) where id = p_order;
+  update public.pickup_slots set starts_at = now() - make_interval(mins => p_minutes + 15),
+                                 ends_at = now() - make_interval(mins => p_minutes)
+  where id = (select pickup_slot_id from public.orders where id = p_order);
+end;
+$$;
+
 grant execute on all functions in schema tests to anon, authenticated;
