@@ -1,0 +1,8 @@
+{
+  "extends": "@campuscart/config/tsconfig.library.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx"
+  },
+  "include": ["src"]
+}

@@ -49,5 +49,9 @@ insert into public.inventory (menu_item_id, quantity_available, low_stock_thresh
   ('00000000-0000-4000-d000-000000000005', 40, 8),
   ('00000000-0000-4000-d000-000000000007', 4, 5);  -- starts "low" to show the derived status
 
+-- Bottled cold coffee is sealed stock: if an order isn't collected it goes back on the shelf,
+-- while prepared food becomes a discounted deal (REQUIREMENTS.md D-19).
+update public.menu_items set is_packaged = true where id = '00000000-0000-4000-d000-000000000002';
+
 -- Today plus the next two days of slots for both dev outlets.
 select app.generate_upcoming_slots(2);

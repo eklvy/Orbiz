@@ -3,6 +3,7 @@ import {
   formatDayLabel,
   formatPaise,
   formatSlot,
+  formatTime,
   orderStatusLabel,
   queryKeys,
 } from "@campuscart/client";
@@ -16,6 +17,7 @@ import {
   PickupPass,
   Timeline,
 } from "@/components/status";
+import { RefundRequestCard } from "@/components/deals";
 import { Button, Card, ErrorBox, Loading, Muted, Title, makeStyles } from "@/components/ui";
 import { api } from "@/lib/api";
 import { confirm } from "@/lib/confirm";
@@ -52,10 +54,14 @@ export default function OrderScreen() {
       >
         <View style={{ flex: 1, gap: 2 }}>
           <Title>{o.outlet.name}</Title>
-          <Muted>
-            Pickup {formatDayLabel(o.pickup_slot.starts_at, tz).toLowerCase()},{" "}
-            {formatSlot(o.pickup_slot.starts_at, o.pickup_slot.ends_at, tz)}
-          </Muted>
+          {o.pickup_slot ? (
+            <Muted>
+              Pickup {formatDayLabel(o.pickup_slot.starts_at, tz).toLowerCase()},{" "}
+              {formatSlot(o.pickup_slot.starts_at, o.pickup_slot.ends_at, tz)}
+            </Muted>
+          ) : (
+            <Muted>Surplus deal · pick up at the counter once paid</Muted>
+          )}
         </View>
         <View style={{ alignItems: "flex-end", gap: 4 }}>
           <OrderStatusBadge status={o.status} />
@@ -93,6 +99,34 @@ export default function OrderScreen() {
       )}
 
       <PickupPass order={o} />
+
+      {o.status === "ready_for_pickup" && o.pickup_deadline && (
+        <View style={{ backgroundColor: t.okSoft, borderRadius: radius.sm, padding: space.md }}>
+          <Text style={{ color: t.ok }}>
+            Collect by {formatTime(o.pickup_deadline, tz)}. Orders not collected by then aren&apos;t
+            refunded, and the food is offered to other students.
+          </Text>
+        </View>
+      )}
+
+      {o.status === "no_show" && (
+        <View
+          style={{
+            backgroundColor: t.dangerSoft,
+            borderRadius: radius.md,
+            padding: space.lg,
+            gap: 4,
+          }}
+        >
+          <Text style={{ color: t.danger, fontWeight: "700" }}>
+            This order wasn&apos;t collected in time
+          </Text>
+          <Text style={{ color: t.danger }}>
+            Under the outlet&apos;s policy there&apos;s no refund. Packaged items went back into
+            stock, and freshly made food was offered to other students at a discount.
+          </Text>
+        </View>
+      )}
 
       {o.queue_position != null && (
         <View style={{ backgroundColor: t.infoSoft, borderRadius: radius.sm, padding: space.md }}>
@@ -147,6 +181,8 @@ export default function OrderScreen() {
           <Text style={{ color: t.ink, fontWeight: "700" }}>{formatPaise(o.total_paise)}</Text>
         </View>
       </Card>
+
+      <RefundRequestCard order={o} />
 
       {canCancel && (
         <>

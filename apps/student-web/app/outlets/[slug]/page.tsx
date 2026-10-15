@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { DealsSection } from "@/components/deals-section";
 import { ItemDialog } from "@/components/item-dialog";
 import { MenuItemCard } from "@/components/menu-item-card";
 import { OutletStatus } from "@/components/outlet-card";
@@ -121,6 +122,8 @@ export default function OutletPage() {
           {o.status_reason && <span className="block text-sm">“{o.status_reason}”</span>}
         </p>
       )}
+
+      <DealsSection outletId={o.id} slug={slug} timeZone={o.timezone} />
 
       <section
         aria-label="Filters"

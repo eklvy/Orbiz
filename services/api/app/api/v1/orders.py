@@ -12,9 +12,12 @@ from app.modules.orders.schemas import (
     OrderPage,
     TransitionRule,
 )
+from app.modules.refunds import service as refunds
+from app.modules.refunds.schemas import RefundRequestCreate
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
+# Shared with the deals router (buying a deal also creates an order).
 IdempotencyKey = Annotated[
     str,
     Header(
@@ -67,3 +70,15 @@ async def cancel_order(
     """Student cancellation (allowed while unpaid, or paid but not yet accepted)."""
     async with db.user_transaction(principal) as conn:
         return await service.transition(conn, order_id, "cancelled", body.reason)
+
+
+@router.post(
+    "/{order_id}/refund-request", response_model=OrderDetail, status_code=status.HTTP_201_CREATED
+)
+async def request_refund(
+    order_id: UUID, body: RefundRequestCreate, principal: CurrentPrincipal, db: Db
+) -> OrderDetail:
+    """Ask the outlet for a refund on a collected order (within 24 hours). The outlet's manager
+    decides. Uncollected (no-show) orders are not refundable."""
+    async with db.user_transaction(principal) as conn:
+        return await refunds.request_refund(conn, order_id, body.reason)

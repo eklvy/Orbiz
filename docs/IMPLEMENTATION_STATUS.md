@@ -3,7 +3,7 @@
 Status vocabulary: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `INCOMPLETE` · `COMPLETE`.
 A phase is `COMPLETE` only when its acceptance criteria were verified by commands actually run.
 
-Last updated: 2026-10-14 (Phase 3).
+Last updated: 2026-10-15 (Phase 4).
 
 ## Phase overview
 
@@ -13,7 +13,7 @@ Last updated: 2026-10-14 (Phase 3).
 | 1 | Database, authentication, authorization, RLS | **COMPLETE** |
 | 2 | Core backend, ordering, inventory, real-time events | **COMPLETE** |
 | 3 | Student website + student mobile app | **COMPLETE** (native simulator run blocked) |
-| 4 | Manager dashboard + POS/kitchen dashboard | NOT STARTED |
+| 4 | Manager dashboard + POS/kitchen dashboard | **COMPLETE** (RLS mutation check outstanding) |
 | 5 | Payments, wallets, group orders, notifications, loyalty, budgets, specials/polls/reviews | NOT STARTED |
 | 6A | RL environments, reward design, baselines | NOT STARTED |
 | 6B | RL training, evaluation, reproducibility, comparisons | NOT STARTED |
@@ -316,6 +316,98 @@ There is deliberately no React in it: the web app (React 19.3) and Expo (19.2.3)
 
 ---
 
+## Phase 4 — COMPLETE (RLS mutation check not run; see below)
+
+Branch `phase-4/manager-pos-dashboards`.
+
+### Decisions applied
+- **D-19 decided by the product owner (2026-10-14)** and implemented: pickup deadline = later of "ready" and
+  "slot end" + 15 min; no refund; packaged items (per-item manager flag) back into stock; prepared items become
+  one deal at 50% of what was paid, on sale 30 min, then recorded unsold; mixed orders split per item; a paid
+  deal order goes straight to `ready_for_pickup` with a new token, and the counter shows the new owner. All
+  three numbers are per-outlet settings. Defaults chosen by us and still open to change: deal orders that
+  aren't collected are not relisted; the original student can't buy their own deal; a deal can't be bought
+  while the outlet is closed.
+- Refund requests: full amount only, within 24 h of pickup, one per order, not for no-shows (our defaults).
+- D-7: both the POS app and the manager's Kitchen page render the same live board.
+
+### Delivered
+**Migrations** (`supabase/migrations/20261015…`): `120000_phase4_enums` (`no_show` status, `no_show_return`
+ledger reason), `120100_outlet_management` (packaged flag + order-line snapshot, outlet no-show settings,
+`private.pickup_deadline`, manager functions for categories/items/hours/settings/slots/staff,
+`app.order_customer_names`, audit triggers on menu/categories/hours), `120200_refund_requests` (table, RLS,
+request/decide/approve-all, Realtime), `120300_no_show_deals` (`surplus_deals` + items, slot-less deal orders,
+two system transitions, `process_no_shows`, `expire_surplus_deals`, `claim_deal`, `withdraw_deal`, deal-aware
+reservation release and payment confirmation, two pg_cron jobs, Realtime). Dev seed: Cold Coffee is packaged.
+
+**API:** modules `deals`, `refunds`, `management`; staff queue returns `StaffOrder` (customer name, deal
+source token); orders expose `pickup_deadline`, `no_show_at`, `source_deal_id`, `refund_request`, nullable
+`pickup_slot`; `/me` memberships include the outlet time zone. Endpoints in [API.md](API.md).
+
+**Clients:** `packages/client` gains the staff/manager API, `parsePickupQr`, `parseRupeesToPaise` (no float
+math), `formatTimeLeft`, event labels. New `packages/staff-web` (sign-in gate, outlet picker, live
+`KitchenBoard`, pickup scanner, `DealsPanel`, UI). **POS app**: live board (New → Accepted → Preparing →
+Ready), reject/cancel with reason, pickup by code or scanned QR, collect-by countdown, uncollected orders &
+deals with withdraw. **Manager app**: overview (Open / Break with duration + public reason / Close; today's
+figures; campus fleet table), kitchen, menu & stock (add/edit/archive items, packaged flag, availability,
+restock, start/stop counting, today's counts, categories), refunds desk (approve, decline with note, approve
+all, owed refunds, median decision time), slots & hours, staff (add kitchen staff by email, remove),
+settings (incl. the no-show policy numbers). **Student website + mobile app**: discounted deals on the outlet
+page, buying a deal, "not collected" explanation, collect-by notice, refund request and its decision.
+
+### Verification (actually run, 2026-10-15)
+| Check | Result |
+|---|---|
+| `bash scripts/verify.sh` (one clean run) | **"All checks passed."** |
+| Prettier, `tsc` (all packages), ESLint (incl. new `staff-web` lint) | Pass |
+| Vitest | contracts 3/3, client **20/20** (new: QR parsing, rupee input without float error, time-left, no-show labels, `canManage`) |
+| Next.js production builds | 4/4 apps (manager: 8 routes; POS: 1) |
+| Mobile Hermes bundles | iOS + Android built |
+| ruff / mypy `--strict` | Pass (59 files) |
+| Contracts up to date | Pass |
+| pytest unit | 48/48 |
+| `supabase db reset` | 15 migrations + 2 seeds apply cleanly |
+| pgTAP | **274/274** across 11 files (new: manager ops 39, refunds 24, no-show & deals 45; jobs/Realtime test updated) |
+| pytest integration (real GoTrue + Postgres) | **37/37** (new: 6 — no-show → deal → **5-way race, exactly one buyer wins** → new owner at the counter → pickup; withdrawal and access; settings/hours; menu edits reach students + today's counts + summary; slots and staff; refunds desk) |
+| Student website E2E | **22/22** desktop + Pixel 7 (new: no-show explanation live + another student buys the deal; refund request and live decision) |
+| Student mobile E2E (RN Web) | **2/2** (new: no-show live + deal bought by another app user) |
+| POS E2E | **14/14** desktop + tablet (live order, full kitchen flow, wrong/right code, scanned QR, reject with reason → refund owed, no-show → deal → buyer shown at counter, withdraw, staff-only gate, axe + no sideways scroll) |
+| Manager E2E | **12 passed, 2 skipped by design** desktop + Pixel 7 (status/break, menu add/reprice/sold-out/restock, refunds approve/decline live, staff add/remove, slots & settings, kitchen refused, axe + overflow on all 7 sections ×5 repeats) |
+
+Also run by hand in the browser (dev servers, real pg_cron): order → POS live → Accept/Start/Ready → order
+moved past its deadline → pg_cron made it a no-show, bottled coffee restocked (24 → 25), sandwich listed at
+₹35 (₹70 paid) → another student bought and paid → the POS showed "N-2 · Dev Student Two · Deal · was N-1"
+→ handed over with the pickup code. Kitchen account refused by the manager app.
+
+**Bugs found and fixed:** a stale API from the previous session was still serving old code on :8100
+(Playwright would have reused it); the fleet table's scroll container wasn't keyboard-reachable; archived menu
+items used opacity and failed colour contrast; long countdowns read "454:58"; the dashboards read env during
+static prerender (they now render only in the browser); a test waited on the previous page's heading.
+
+**Not verified:**
+- **RLS mutation check** (temporarily weakening the new policies to prove the tests catch it) was blocked by
+  the session's auto-mode safety classifier. The new negative tests exist (anon/student/kitchen/other-outlet
+  cases in pgTAP and HTTP), but the mutation run itself is outstanding.
+- New CI steps haven't run on GitHub until the branch is pushed.
+
+### Acceptance criteria
+- [x] Managers can control outlet status, menu, stock, slots, hours, staff and settings for their outlets only
+- [x] Kitchen staff run the live queue and pickup from a separate POS app; managers see the same board
+- [x] Refund requests can be approved/declined (singly and in bulk) with an audit trail
+- [x] The no-show policy (D-19) runs automatically and the counter sees a resold deal's new owner live
+- [x] Every new flow has backend, database and browser tests against the real stack
+
+### Known limitations (Phase 4)
+- Refund approval records money as owed; payout is Phase 5. Deals and orders are still paid via the test
+  stand-in until Phase 5.
+- Specials/polls and reviews (report §3.3, §3.7) are Phase 5; demand forecast is Phase 7 — not shown as
+  placeholders.
+- Camera QR scanning isn't built; the counter uses a keyboard-wedge scanner or the typed code.
+- `inventory` has no outlet column, so the manager menu refetches on any outlet's stock change.
+- Students aren't notified (push/email) when their order becomes a no-show; notifications are Phase 5.
+
+---
+
 ## Prerequisites and blockers for upcoming phases
 
 | Needed for | Item | Status |
@@ -326,7 +418,7 @@ There is deliberately no React in it: the web app (React 19.3) and Expo (19.2.3)
 | Phase 2 | Decision D-2 (seat/crowd data source) | OPEN, default documented |
 | Phase 3+ | Native mobile testing | Xcode installed, **iOS runtime missing** (`xcodebuild -downloadPlatform iOS`, ~8 GB); no Android SDK. Expo Go on a phone works without either |
 | Phase 5 | Razorpay **test-mode** key ID, key secret, webhook secret | Not provided |
-| Phase 5 | Expo push access token; decisions D-6 (signup bonus), D-15 (loyalty policy) | Not provided / OPEN |
+| Phase 5 | Expo push access token; decisions D-6 (signup bonus), D-15 (loyalty policy), D-18 (pay at counter) | Not provided / OPEN |
 | Phase 7 | LLM provider choice for BiteBot (optional; must work without one) | Not decided |
 | Staging/prod | Supabase projects, hosting targets, domain | Not provided |
 

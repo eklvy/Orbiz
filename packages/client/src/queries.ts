@@ -20,6 +20,7 @@ export const queryKeys = {
   order: (orderId: string) => ["order", orderId] as const,
   transitions: ["order-transitions"] as const,
   me: ["me"] as const,
+  deals: (outletId: string) => ["deals", outletId] as const,
 };
 
 /** Typed calls for every student-facing endpoint. Prices and totals are never sent. */
@@ -84,6 +85,25 @@ export function createStudentApi(client: ApiClient) {
         client.POST("/api/v1/orders/{order_id}/cancel", {
           params: { path: { order_id: orderId } },
           body: reason ? { reason } : {},
+        }),
+      ),
+    requestRefund: (orderId: string, reason: string) =>
+      unwrap(
+        client.POST("/api/v1/orders/{order_id}/refund-request", {
+          params: { path: { order_id: orderId } },
+          body: { reason },
+        }),
+      ),
+    listDeals: (outletId: string) =>
+      unwrap(
+        client.GET("/api/v1/outlets/{outlet_id}/deals", {
+          params: { path: { outlet_id: outletId } },
+        }),
+      ),
+    claimDeal: (dealId: string, idempotencyKey: string) =>
+      unwrap(
+        client.POST("/api/v1/deals/{deal_id}/claim", {
+          params: { path: { deal_id: dealId }, header: { "Idempotency-Key": idempotencyKey } },
         }),
       ),
     listTransitions: () => unwrap(client.GET("/api/v1/orders/transitions")),

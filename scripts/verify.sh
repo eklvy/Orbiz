@@ -63,6 +63,14 @@ if env_lines="$(bash scripts/supabase-env.sh 2>/dev/null)"; then
   step "Student mobile app end-to-end (React Native Web build, Playwright)"
   bash scripts/web-env.sh student-mobile http://localhost:8100 >/dev/null
   (cd apps/student-mobile && pnpm e2e)
+
+  step "POS / kitchen dashboard end-to-end (Playwright, desktop + tablet)"
+  bash scripts/web-env.sh pos-dashboard http://localhost:8100 >/dev/null
+  (cd apps/pos-dashboard && pnpm exec playwright test)
+
+  step "Manager dashboard end-to-end (Playwright, desktop + mobile viewports)"
+  bash scripts/web-env.sh manager-dashboard http://localhost:8100 >/dev/null
+  (cd apps/manager-dashboard && pnpm exec playwright test)
   db_checks=ran
 else
   printf '\n==> SKIPPED database + integration checks: local Supabase is not running (pnpm db:start)\n'

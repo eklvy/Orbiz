@@ -10,6 +10,7 @@ const LABELS: Record<OrderStatus, string> = {
   confirmed: "Accepted by kitchen",
   preparing: "Preparing",
   ready_for_pickup: "Ready for pickup",
+  no_show: "Not collected",
   completed: "Collected",
   cancelled: "Cancelled",
   rejected: "Rejected by kitchen",
@@ -23,6 +24,7 @@ const TONES: Record<OrderStatus, StatusTone> = {
   confirmed: "info",
   preparing: "progress",
   ready_for_pickup: "success",
+  no_show: "danger",
   completed: "neutral",
   cancelled: "danger",
   rejected: "danger",
@@ -52,7 +54,7 @@ export interface TimelineStep {
 
 /** The happy-path steps with progress for display. Ended orders show no timeline. */
 export function orderTimeline(status: OrderStatus): TimelineStep[] {
-  if (status === "cancelled" || status === "rejected") return [];
+  if (status === "cancelled" || status === "rejected" || status === "no_show") return [];
   const index = status === "payment_pending" ? -1 : PROGRESS.indexOf(status);
   return PROGRESS.map((step, i) => ({
     status: step,
@@ -100,4 +102,37 @@ export function pickupQrPayload(
   order: Pick<Schemas["Order"], "id" | "pickup_code">,
 ): string | null {
   return order.pickup_code ? `campuscart:pickup:${order.id}:${order.pickup_code}` : null;
+}
+
+const QR_PATTERN =
+  /^campuscart:pickup:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):([A-Za-z0-9]{4,12})$/i;
+
+/**
+ * Reads what a counter scanner typed from a Digital Food Pass QR. Returns null for anything
+ * else (staff can still type the 6-character code by hand). The server verifies the code.
+ */
+export function parsePickupQr(payload: string): { orderId: string; code: string } | null {
+  const match = QR_PATTERN.exec(payload.trim());
+  if (!match?.[1] || !match[2]) return null;
+  return { orderId: match[1].toLowerCase(), code: match[2].toUpperCase() };
+}
+
+const EVENT_LABELS: Record<string, string> = {
+  refund_requested: "Refund requested",
+  refund_approved: "Refund approved",
+  refund_declined: "Refund declined",
+  no_show: "Not collected in time",
+  expired: "Hold expired (not paid)",
+};
+
+/** A line of order history: refund activity has its own wording; everything else is a status. */
+export function orderEventLabel(
+  event: Pick<Schemas["OrderEvent"], "event_type" | "to_status">,
+): string {
+  return EVENT_LABELS[event.event_type] ?? LABELS[event.to_status];
+}
+
+/** True for an order that bought a surplus deal (no slot: the food is already at the counter). */
+export function isDealOrder(order: Pick<Schemas["Order"], "source_deal_id">): boolean {
+  return order.source_deal_id !== null;
 }

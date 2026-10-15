@@ -118,7 +118,9 @@ export function PickupPass({ order }: { order: Schemas["OrderDetail"] }) {
         setSvg,
       );
   }, [payload]);
-  if (!payload || !order.token_label) return null;
+  // Only useful while the order can still be collected.
+  const ended = ["no_show", "cancelled", "rejected"].includes(order.status);
+  if (!payload || !order.token_label || ended) return null;
   return (
     <Card style={{ borderColor: t.primary, borderWidth: 2, alignItems: "center" }}>
       <View

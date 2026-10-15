@@ -40,6 +40,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/deals/{deal_id}/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Claim Deal
+         * @description Buy a surplus deal: creates an unpaid order that holds the deal until it is paid or the
+         *     hold expires. Once paid, the order is ready for pickup at the counter straight away.
+         */
+        post: operations["claim_deal_api_v1_deals__deal_id__claim_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -73,6 +94,47 @@ export interface paths {
          */
         get: operations["ready_api_v1_health_ready_get"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Category */
+        put: operations["update_category_api_v1_manage_categories__category_id__put"];
+        post?: never;
+        /**
+         * Delete Category
+         * @description Its items become uncategorised; none are deleted.
+         */
+        delete: operations["delete_category_api_v1_manage_categories__category_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/menu-items/{menu_item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Menu Item
+         * @description Replaces the item's editable fields. Existing orders keep the price they were placed at.
+         */
+        put: operations["update_menu_item_api_v1_manage_menu_items__menu_item_id__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -134,6 +196,137 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/manage/outlets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Managed Outlets
+         * @description Outlets the caller manages (admins: all), with settings, hours and live load.
+         */
+        get: operations["list_managed_outlets_api_v1_manage_outlets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Managed Outlet */
+        get: operations["get_managed_outlet_api_v1_manage_outlets__outlet_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Category */
+        post: operations["create_category_api_v1_manage_outlets__outlet_id__categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/hours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Outlet Hours
+         * @description Replaces the weekly schedule. Applies to slots generated afterwards.
+         */
+        put: operations["set_outlet_hours_api_v1_manage_outlets__outlet_id__hours_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/menu": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Manager Menu
+         * @description Every item (including archived) with stock detail and today's order counts.
+         */
+        get: operations["manager_menu_api_v1_manage_outlets__outlet_id__menu_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/menu-items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Menu Item */
+        post: operations["create_menu_item_api_v1_manage_outlets__outlet_id__menu_items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/pickup-slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Manager Slots
+         * @description All slots of one local date (default today), including inactive and past ones.
+         */
+        get: operations["manager_slots_api_v1_manage_outlets__outlet_id__pickup_slots_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/manage/outlets/{outlet_id}/pickup-slots/generate": {
         parameters: {
             query?: never;
@@ -146,6 +339,102 @@ export interface paths {
         /** Generate Slots */
         post: operations["generate_slots_api_v1_manage_outlets__outlet_id__pickup_slots_generate_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Refund Desk
+         * @description Pending requests, recent decisions, refunds already owed, and resolution time.
+         */
+        get: operations["refund_desk_api_v1_manage_outlets__outlet_id__refunds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/refunds/approve-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve All Refunds */
+        post: operations["approve_all_refunds_api_v1_manage_outlets__outlet_id__refunds_approve_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Outlet Settings
+         * @description Descriptive fields, slot defaults, reservation hold, kitchen concurrency, and the
+         *     no-show policy (grace minutes, deal discount, deal listing time).
+         */
+        patch: operations["update_outlet_settings_api_v1_manage_outlets__outlet_id__settings_patch"];
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Staff */
+        get: operations["list_staff_api_v1_manage_outlets__outlet_id__staff_get"];
+        put?: never;
+        /**
+         * Add Staff
+         * @description Add an existing CampusCart account by email. Managers add kitchen staff; admins any role.
+         */
+        post: operations["add_staff_api_v1_manage_outlets__outlet_id__staff_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/staff/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Staff */
+        delete: operations["remove_staff_api_v1_manage_outlets__outlet_id__staff__user_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -165,6 +454,64 @@ export interface paths {
          * @description Open / take a break / close. New orders are blocked unless the outlet is open.
          */
         post: operations["set_outlet_status_api_v1_manage_outlets__outlet_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/outlets/{outlet_id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Outlet Summary */
+        get: operations["outlet_summary_api_v1_manage_outlets__outlet_id__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/manage/pickup-slots/{slot_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Slot
+         * @description Change capacity (not below places booked) or stop/resume bookings. Orders that already
+         *     hold a deactivated slot keep it.
+         */
+        patch: operations["update_slot_api_v1_manage_pickup_slots__slot_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/manage/refund-requests/{request_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide Refund
+         * @description Approve (the refund becomes owed; paid out in Phase 5) or decline with a note.
+         */
+        post: operations["decide_refund_api_v1_manage_refund_requests__request_id__decision_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -271,6 +618,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{order_id}/refund-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Refund
+         * @description Ask the outlet for a refund on a collected order (within 24 hours). The outlet's manager
+         *     decides. Uncollected (no-show) orders are not refundable.
+         */
+        post: operations["request_refund_api_v1_orders__order_id__refund_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/outlets": {
         parameters: {
             query?: never;
@@ -283,6 +651,26 @@ export interface paths {
          * @description Active outlets with live status, accepting-orders flag and a load-based wait estimate.
          */
         get: operations["list_outlets_api_v1_outlets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/outlets/{outlet_id}/deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Deals
+         * @description Surplus deals on sale now: prepared food from uncollected orders at a discount (D-19).
+         */
+        get: operations["list_deals_api_v1_outlets__outlet_id__deals_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -348,6 +736,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/deals/{deal_id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Withdraw Deal
+         * @description Take a deal off sale (e.g. the food was given away).
+         */
+        post: operations["withdraw_deal_api_v1_staff_deals__deal_id__withdraw_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/orders/{order_id}/transition": {
         parameters: {
             query?: never;
@@ -386,6 +794,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/outlets/{outlet_id}/deals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Outlet Deals
+         * @description Surplus deals from uncollected orders listed in the last 24 hours (D-19).
+         */
+        get: operations["outlet_deals_api_v1_staff_outlets__outlet_id__deals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/outlets/{outlet_id}/orders": {
         parameters: {
             query?: never;
@@ -395,7 +823,8 @@ export interface paths {
         };
         /**
          * Outlet Queue
-         * @description The outlet's order queue (active orders by default), ordered by pickup slot.
+         * @description The outlet's order queue (active orders by default), ordered by pickup slot, with each
+         *     customer's name. Deal orders have no slot and are ordered by when they became ready.
          */
         get: operations["outlet_queue_api_v1_staff_outlets__outlet_id__orders_get"];
         put?: never;
@@ -410,6 +839,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ApprovedCount */
+        ApprovedCount: {
+            /** Approved */
+            approved: number;
+        };
         /** AvailabilityUpdate */
         AvailabilityUpdate: {
             /**
@@ -467,6 +901,78 @@ export interface components {
              */
             replace_cart: boolean;
         };
+        /** CategoryInput */
+        CategoryInput: {
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+        };
+        /**
+         * Deal
+         * @description Prepared food from an uncollected order, offered at a discount (REQUIREMENTS.md D-19).
+         *     Prices are set by the server when the deal is listed.
+         */
+        Deal: {
+            /** Discount Percent */
+            discount_percent: number;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Items */
+            items: components["schemas"]["DealItem"][];
+            /**
+             * Listed At
+             * Format: date-time
+             */
+            listed_at: string;
+            /** Original Price Paise */
+            original_price_paise: number;
+            /**
+             * Outlet Id
+             * Format: uuid
+             */
+            outlet_id: string;
+            /** Price Paise */
+            price_paise: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "available" | "reserved" | "sold" | "expired" | "withdrawn";
+        };
+        /** DealItem */
+        DealItem: {
+            /** Deal Unit Price Paise */
+            deal_unit_price_paise: number;
+            /** Diet */
+            diet: ("veg" | "egg" | "non_veg") | null;
+            /** Item Name */
+            item_name: string;
+            /** Menu Item Id */
+            menu_item_id: string | null;
+            /** Original Unit Price Paise */
+            original_unit_price_paise: number;
+            /** Quantity */
+            quantity: number;
+        };
         /**
          * Environment
          * @enum {string}
@@ -500,6 +1006,159 @@ export interface components {
             status: "ok";
             /** Version */
             version: string;
+        };
+        /** ManagedOutlet */
+        ManagedOutlet: {
+            /** Break Until */
+            break_until: string | null;
+            /** Concurrent Orders */
+            concurrent_orders: number;
+            /** Deal Ttl Minutes */
+            deal_ttl_minutes: number;
+            /** Default Slot Capacity */
+            default_slot_capacity: number;
+            /** Description */
+            description: string | null;
+            /** Hours */
+            hours: components["schemas"]["OpeningHours"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Location */
+            location: string | null;
+            /** Name */
+            name: string;
+            /** No Show Deal Discount Percent */
+            no_show_deal_discount_percent: number;
+            /** No Show Grace Minutes */
+            no_show_grace_minutes: number;
+            queue: components["schemas"]["QueueStats"];
+            /** Reservation Ttl Minutes */
+            reservation_ttl_minutes: number;
+            /** Slot Minutes */
+            slot_minutes: number;
+            /** Slug */
+            slug: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "on_break" | "closed";
+            /** Status Reason */
+            status_reason: string | null;
+            /** Timezone */
+            timezone: string;
+            /** Token Prefix */
+            token_prefix: string;
+        };
+        /** ManagerCategory */
+        ManagerCategory: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Name */
+            name: string;
+            /** Sort Order */
+            sort_order: number;
+        };
+        /** ManagerMenu */
+        ManagerMenu: {
+            /**
+             * Business Date
+             * Format: date
+             */
+            business_date: string;
+            /** Categories */
+            categories: components["schemas"]["ManagerCategory"][];
+            /** Items */
+            items: components["schemas"]["ManagerMenuItem"][];
+            /**
+             * Outlet Id
+             * Format: uuid
+             */
+            outlet_id: string;
+        };
+        /** ManagerMenuItem */
+        ManagerMenuItem: {
+            /** Calories Kcal */
+            calories_kcal: number | null;
+            /** Category Id */
+            category_id: string | null;
+            /** Description */
+            description: string | null;
+            /** Diet */
+            diet: ("veg" | "egg" | "non_veg") | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Is Packaged */
+            is_packaged: boolean;
+            /** Low Stock Threshold */
+            low_stock_threshold: number | null;
+            /**
+             * Manual Status
+             * @enum {string}
+             */
+            manual_status: "available" | "low" | "sold_out";
+            /** Name */
+            name: string;
+            /** Prep Minutes */
+            prep_minutes: number;
+            /** Price Paise */
+            price_paise: number;
+            /** Protein G */
+            protein_g: number | null;
+            /** Quantity Available */
+            quantity_available: number | null;
+            /** Sort Order */
+            sort_order: number;
+            /**
+             * Stock Status
+             * @enum {string}
+             */
+            stock_status: "available" | "low" | "sold_out";
+            /** Today Orders */
+            today_orders: number;
+            /** Today Quantity */
+            today_quantity: number;
+            /** Track Quantity */
+            track_quantity: boolean;
+        };
+        /** ManagerSlot */
+        ManagerSlot: {
+            /** Capacity */
+            capacity: number;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Active */
+            is_active: boolean;
+            /** Reserved Count */
+            reserved_count: number;
+            /**
+             * Starts At
+             * Format: date-time
+             */
+            starts_at: string;
         };
         /** Me */
         Me: {
@@ -585,6 +1244,46 @@ export interface components {
              */
             stock_status: "available" | "low" | "sold_out";
         };
+        /**
+         * MenuItemInput
+         * @description Replaces every editable field. Prices are integer paise.
+         */
+        MenuItemInput: {
+            /** Calories Kcal */
+            calories_kcal?: number | null;
+            /** Category Id */
+            category_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Diet */
+            diet?: ("veg" | "egg" | "non_veg") | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean;
+            /**
+             * Is Packaged
+             * @default false
+             */
+            is_packaged: boolean;
+            /** Name */
+            name: string;
+            /**
+             * Prep Minutes
+             * @default 5
+             */
+            prep_minutes: number;
+            /** Price Paise */
+            price_paise: number;
+            /** Protein G */
+            protein_g?: number | null;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+        };
         /** OpeningHours */
         OpeningHours: {
             /**
@@ -599,6 +1298,26 @@ export interface components {
              * Format: time
              */
             opens_at: string;
+        };
+        /** OpeningHoursIn */
+        OpeningHoursIn: {
+            /**
+             * Closes At
+             * Format: time
+             */
+            closes_at: string;
+            /** Day Of Week */
+            day_of_week: number;
+            /**
+             * Opens At
+             * Format: time
+             */
+            opens_at: string;
+        };
+        /** OpeningHoursUpdate */
+        OpeningHoursUpdate: {
+            /** Hours */
+            hours: components["schemas"]["OpeningHoursIn"][];
         };
         /** Order */
         Order: {
@@ -626,6 +1345,8 @@ export interface components {
             item_count: number;
             /** Items */
             items: components["schemas"]["OrderItem"][];
+            /** No Show At */
+            no_show_at: string | null;
             outlet: components["schemas"]["OutletRef"];
             /**
              * Payment Status
@@ -634,7 +1355,9 @@ export interface components {
             payment_status: "unpaid" | "paid";
             /** Pickup Code */
             pickup_code: string | null;
-            pickup_slot: components["schemas"]["PickupSlotRef"];
+            /** Pickup Deadline */
+            pickup_deadline: string | null;
+            pickup_slot: components["schemas"]["PickupSlotRef"] | null;
             /** Placed At */
             placed_at: string | null;
             /** Preparing At */
@@ -650,11 +1373,13 @@ export interface components {
             refund_status: "none" | "required" | "refunded";
             /** Reservation Expires At */
             reservation_expires_at: string | null;
+            /** Source Deal Id */
+            source_deal_id: string | null;
             /**
              * Status
              * @enum {string}
              */
-            status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "completed" | "cancelled" | "rejected";
+            status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected";
             /** Subtotal Paise */
             subtotal_paise: number;
             /** Token Label */
@@ -715,6 +1440,8 @@ export interface components {
             item_count: number;
             /** Items */
             items: components["schemas"]["OrderItem"][];
+            /** No Show At */
+            no_show_at: string | null;
             outlet: components["schemas"]["OutletRef"];
             /**
              * Payment Status
@@ -723,7 +1450,9 @@ export interface components {
             payment_status: "unpaid" | "paid";
             /** Pickup Code */
             pickup_code: string | null;
-            pickup_slot: components["schemas"]["PickupSlotRef"];
+            /** Pickup Deadline */
+            pickup_deadline: string | null;
+            pickup_slot: components["schemas"]["PickupSlotRef"] | null;
             /** Placed At */
             placed_at: string | null;
             /** Preparing At */
@@ -732,6 +1461,7 @@ export interface components {
             queue_position: number | null;
             /** Ready At */
             ready_at: string | null;
+            refund_request: components["schemas"]["RefundRequestSummary"] | null;
             /**
              * Refund Status
              * @enum {string}
@@ -739,11 +1469,13 @@ export interface components {
             refund_status: "none" | "required" | "refunded";
             /** Reservation Expires At */
             reservation_expires_at: string | null;
+            /** Source Deal Id */
+            source_deal_id: string | null;
             /**
              * Status
              * @enum {string}
              */
-            status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "completed" | "cancelled" | "rejected";
+            status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected";
             /** Subtotal Paise */
             subtotal_paise: number;
             /** Token Label */
@@ -773,14 +1505,14 @@ export interface components {
             /** Event Type */
             event_type: string;
             /** From Status */
-            from_status: ("payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "completed" | "cancelled" | "rejected") | null;
+            from_status: ("payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected") | null;
             /** Reason */
             reason: string | null;
             /**
              * To Status
              * @enum {string}
              */
-            to_status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "completed" | "cancelled" | "rejected";
+            to_status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected";
         };
         /** OrderItem */
         OrderItem: {
@@ -789,6 +1521,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Is Packaged */
+            is_packaged: boolean;
             /** Item Name */
             item_name: string;
             /** Line Total Paise */
@@ -890,6 +1624,8 @@ export interface components {
             outlet_name: string;
             /** Outlet Slug */
             outlet_slug: string;
+            /** Outlet Timezone */
+            outlet_timezone: string;
             /**
              * Role
              * @enum {string}
@@ -908,6 +1644,32 @@ export interface components {
             /** Slug */
             slug: string;
         };
+        /**
+         * OutletSettingsUpdate
+         * @description Omitted fields are left unchanged.
+         */
+        OutletSettingsUpdate: {
+            /** Concurrent Orders */
+            concurrent_orders?: number | null;
+            /** Deal Ttl Minutes */
+            deal_ttl_minutes?: number | null;
+            /** Default Slot Capacity */
+            default_slot_capacity?: number | null;
+            /** Description */
+            description?: string | null;
+            /** Location */
+            location?: string | null;
+            /** Name */
+            name?: string | null;
+            /** No Show Deal Discount Percent */
+            no_show_deal_discount_percent?: number | null;
+            /** No Show Grace Minutes */
+            no_show_grace_minutes?: number | null;
+            /** Reservation Ttl Minutes */
+            reservation_ttl_minutes?: number | null;
+            /** Slot Minutes */
+            slot_minutes?: number | null;
+        };
         /** OutletStatusUpdate */
         OutletStatusUpdate: {
             /** Break Minutes */
@@ -919,6 +1681,67 @@ export interface components {
              * @enum {string}
              */
             status: "open" | "on_break" | "closed";
+        };
+        /**
+         * OutletSummary
+         * @description Today's figures for one outlet, computed from real orders (outlet-local business date).
+         */
+        OutletSummary: {
+            /**
+             * Business Date
+             * Format: date
+             */
+            business_date: string;
+            /** Deal Sales Paise */
+            deal_sales_paise: number;
+            /** Deals */
+            deals: {
+                [key: string]: number;
+            };
+            /** Gross Paid Paise */
+            gross_paid_paise: number;
+            /** No Shows */
+            no_shows: number;
+            /** Orders By Status */
+            orders_by_status: {
+                [key: string]: number;
+            };
+            /** Paid Orders */
+            paid_orders: number;
+            /** Pending Refund Requests */
+            pending_refund_requests: number;
+            /** Refunds Owed Paise */
+            refunds_owed_paise: number;
+        };
+        /**
+         * OwedRefund
+         * @description A refund the system already owes (no request needed), e.g. the kitchen cancelled a paid
+         *     order. Paid out by the Phase 5 refund workflow.
+         */
+        OwedRefund: {
+            /** Amount Paise */
+            amount_paise: number;
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Customer Name */
+            customer_name: string | null;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            /**
+             * Order Status
+             * @enum {string}
+             */
+            order_status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected";
+            /** Order Token */
+            order_token: string | null;
+            /**
+             * Owed Since
+             * Format: date-time
+             */
+            owed_since: string;
         };
         /** PickupSlot */
         PickupSlot: {
@@ -1009,6 +1832,95 @@ export interface components {
              */
             status: "ready";
         };
+        /** RefundDecision */
+        RefundDecision: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "approve" | "decline";
+            /** Note */
+            note?: string | null;
+        };
+        /** RefundDesk */
+        RefundDesk: {
+            /** Decided */
+            decided: components["schemas"]["RefundRequestEntry"][];
+            /** Median Resolution Minutes 7D */
+            median_resolution_minutes_7d: number | null;
+            /** Owed */
+            owed: components["schemas"]["OwedRefund"][];
+            /** Pending */
+            pending: components["schemas"]["RefundRequestEntry"][];
+        };
+        /** RefundRequestCreate */
+        RefundRequestCreate: {
+            /** Reason */
+            reason: string;
+        };
+        /** RefundRequestEntry */
+        RefundRequestEntry: {
+            /** Amount Paise */
+            amount_paise: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Customer Name */
+            customer_name: string | null;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By */
+            decided_by: string | null;
+            /** Decision Note */
+            decision_note: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Order Id
+             * Format: uuid
+             */
+            order_id: string;
+            /** Order Token */
+            order_token: string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "declined";
+        };
+        /** RefundRequestSummary */
+        RefundRequestSummary: {
+            /** Amount Paise */
+            amount_paise: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Decided At */
+            decided_at: string | null;
+            /** Decision Note */
+            decision_note: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "declined";
+        };
         /** SlotGeneration */
         SlotGeneration: {
             /**
@@ -1017,10 +1929,180 @@ export interface components {
              */
             date: string;
         };
+        /** SlotUpdate */
+        SlotUpdate: {
+            /** Capacity */
+            capacity?: number | null;
+            /** Is Active */
+            is_active?: boolean | null;
+        };
         /** SlotsGenerated */
         SlotsGenerated: {
             /** Created */
             created: number;
+        };
+        /** StaffAdd */
+        StaffAdd: {
+            /** Email */
+            email: string;
+            /**
+             * Role
+             * @default kitchen_staff
+             * @enum {string}
+             */
+            role: "manager" | "kitchen_staff";
+        };
+        /** StaffDeal */
+        StaffDeal: {
+            /** Buyer Order Id */
+            buyer_order_id: string | null;
+            /** Buyer Token */
+            buyer_token: string | null;
+            /** Close Reason */
+            close_reason: string | null;
+            /** Closed At */
+            closed_at: string | null;
+            /** Discount Percent */
+            discount_percent: number;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Items */
+            items: components["schemas"]["DealItem"][];
+            /**
+             * Listed At
+             * Format: date-time
+             */
+            listed_at: string;
+            /** Original Price Paise */
+            original_price_paise: number;
+            /**
+             * Outlet Id
+             * Format: uuid
+             */
+            outlet_id: string;
+            /** Price Paise */
+            price_paise: number;
+            /** Source Token */
+            source_token: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "available" | "reserved" | "sold" | "expired" | "withdrawn";
+        };
+        /** StaffMember */
+        StaffMember: {
+            /**
+             * Added At
+             * Format: date-time
+             */
+            added_at: string;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "manager" | "kitchen_staff";
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /**
+         * StaffOrder
+         * @description An order as the counter sees it: never the pickup code, but the customer's name.
+         */
+        StaffOrder: {
+            /** Cancel Reason */
+            cancel_reason: string | null;
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /** Cancelled By */
+            cancelled_by: ("student" | "staff" | "system") | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Confirmed At */
+            confirmed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Customer Name */
+            customer_name: string | null;
+            /** Deal Source Token */
+            deal_source_token: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Items */
+            items: components["schemas"]["OrderItem"][];
+            /** No Show At */
+            no_show_at: string | null;
+            outlet: components["schemas"]["OutletRef"];
+            /**
+             * Payment Status
+             * @enum {string}
+             */
+            payment_status: "unpaid" | "paid";
+            /** Pickup Code */
+            pickup_code: string | null;
+            /** Pickup Deadline */
+            pickup_deadline: string | null;
+            pickup_slot: components["schemas"]["PickupSlotRef"] | null;
+            /** Placed At */
+            placed_at: string | null;
+            /** Preparing At */
+            preparing_at: string | null;
+            /** Queue Position */
+            queue_position: number | null;
+            /** Ready At */
+            ready_at: string | null;
+            /**
+             * Refund Status
+             * @enum {string}
+             */
+            refund_status: "none" | "required" | "refunded";
+            /** Reservation Expires At */
+            reservation_expires_at: string | null;
+            /** Source Deal Id */
+            source_deal_id: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected";
+            /** Subtotal Paise */
+            subtotal_paise: number;
+            /** Token Label */
+            token_label: string | null;
+            /** Total Paise */
+            total_paise: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
         };
         /** StockAdjustment */
         StockAdjustment: {
@@ -1076,7 +2158,7 @@ export interface components {
              * From Status
              * @enum {string}
              */
-            from_status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "completed" | "cancelled" | "rejected";
+            from_status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected";
             /** Marks Refund Required */
             marks_refund_required: boolean;
             /** Releases Slot */
@@ -1093,7 +2175,12 @@ export interface components {
              * To Status
              * @enum {string}
              */
-            to_status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "completed" | "cancelled" | "rejected";
+            to_status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected";
+        };
+        /** WithdrawRequest */
+        WithdrawRequest: {
+            /** Reason */
+            reason: string;
         };
     };
     responses: never;
@@ -1102,20 +2189,32 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type ApprovedCount = components['schemas']['ApprovedCount'];
 export type AvailabilityUpdate = components['schemas']['AvailabilityUpdate'];
 export type CancelRequest = components['schemas']['CancelRequest'];
 export type Cart = components['schemas']['Cart'];
 export type CartItem = components['schemas']['CartItem'];
 export type CartItemSet = components['schemas']['CartItemSet'];
+export type CategoryInput = components['schemas']['CategoryInput'];
+export type Deal = components['schemas']['Deal'];
+export type DealItem = components['schemas']['DealItem'];
 export type Environment = components['schemas']['Environment'];
 export type ErrorDetail = components['schemas']['ErrorDetail'];
 export type ErrorResponse = components['schemas']['ErrorResponse'];
 export type HealthResponse = components['schemas']['HealthResponse'];
+export type ManagedOutlet = components['schemas']['ManagedOutlet'];
+export type ManagerCategory = components['schemas']['ManagerCategory'];
+export type ManagerMenu = components['schemas']['ManagerMenu'];
+export type ManagerMenuItem = components['schemas']['ManagerMenuItem'];
+export type ManagerSlot = components['schemas']['ManagerSlot'];
 export type Me = components['schemas']['Me'];
 export type Menu = components['schemas']['Menu'];
 export type MenuCategory = components['schemas']['MenuCategory'];
 export type MenuItem = components['schemas']['MenuItem'];
+export type MenuItemInput = components['schemas']['MenuItemInput'];
 export type OpeningHours = components['schemas']['OpeningHours'];
+export type OpeningHoursIn = components['schemas']['OpeningHoursIn'];
+export type OpeningHoursUpdate = components['schemas']['OpeningHoursUpdate'];
 export type Order = components['schemas']['Order'];
 export type OrderCreate = components['schemas']['OrderCreate'];
 export type OrderDetail = components['schemas']['OrderDetail'];
@@ -1127,20 +2226,34 @@ export type Outlet = components['schemas']['Outlet'];
 export type OutletDetail = components['schemas']['OutletDetail'];
 export type OutletMembership = components['schemas']['OutletMembership'];
 export type OutletRef = components['schemas']['OutletRef'];
+export type OutletSettingsUpdate = components['schemas']['OutletSettingsUpdate'];
 export type OutletStatusUpdate = components['schemas']['OutletStatusUpdate'];
+export type OutletSummary = components['schemas']['OutletSummary'];
+export type OwedRefund = components['schemas']['OwedRefund'];
 export type PickupSlot = components['schemas']['PickupSlot'];
 export type PickupSlotRef = components['schemas']['PickupSlotRef'];
 export type PickupVerifyRequest = components['schemas']['PickupVerifyRequest'];
 export type ProfileUpdate = components['schemas']['ProfileUpdate'];
 export type QueueStats = components['schemas']['QueueStats'];
 export type ReadinessResponse = components['schemas']['ReadinessResponse'];
+export type RefundDecision = components['schemas']['RefundDecision'];
+export type RefundDesk = components['schemas']['RefundDesk'];
+export type RefundRequestCreate = components['schemas']['RefundRequestCreate'];
+export type RefundRequestEntry = components['schemas']['RefundRequestEntry'];
+export type RefundRequestSummary = components['schemas']['RefundRequestSummary'];
 export type SlotGeneration = components['schemas']['SlotGeneration'];
+export type SlotUpdate = components['schemas']['SlotUpdate'];
 export type SlotsGenerated = components['schemas']['SlotsGenerated'];
+export type StaffAdd = components['schemas']['StaffAdd'];
+export type StaffDeal = components['schemas']['StaffDeal'];
+export type StaffMember = components['schemas']['StaffMember'];
+export type StaffOrder = components['schemas']['StaffOrder'];
 export type StockAdjustment = components['schemas']['StockAdjustment'];
 export type StockLevel = components['schemas']['StockLevel'];
 export type StockTracking = components['schemas']['StockTracking'];
 export type TransitionRequest = components['schemas']['TransitionRequest'];
 export type TransitionRule = components['schemas']['TransitionRule'];
+export type WithdrawRequest = components['schemas']['WithdrawRequest'];
 export type $defs = Record<string, never>;
 export interface operations {
     get_cart_api_v1_cart_get: {
@@ -1483,6 +2596,94 @@ export interface operations {
             };
         };
     };
+    claim_deal_api_v1_deals__deal_id__claim_post: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Unique per checkout attempt; retries with the same key return the same order. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderDetail"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     health_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -1582,6 +2783,267 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_category_api_v1_manage_categories__category_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagerCategory"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_category_api_v1_manage_categories__category_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_menu_item_api_v1_manage_menu_items__menu_item_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                menu_item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuItemInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagerMenuItem"];
                 };
             };
             /** @description Missing or invalid access token */
@@ -1912,6 +3374,613 @@ export interface operations {
             };
         };
     };
+    list_managed_outlets_api_v1_manage_outlets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedOutlet"][];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_managed_outlet_api_v1_manage_outlets__outlet_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedOutlet"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_category_api_v1_manage_outlets__outlet_id__categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagerCategory"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_outlet_hours_api_v1_manage_outlets__outlet_id__hours_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpeningHoursUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedOutlet"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    manager_menu_api_v1_manage_outlets__outlet_id__menu_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagerMenu"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_menu_item_api_v1_manage_outlets__outlet_id__menu_items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MenuItemInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagerMenuItem"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    manager_slots_api_v1_manage_outlets__outlet_id__pickup_slots_get: {
+        parameters: {
+            query?: {
+                date?: string | null;
+            };
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagerSlot"][];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     generate_slots_api_v1_manage_outlets__outlet_id__pickup_slots_generate_post: {
         parameters: {
             query?: never;
@@ -2001,6 +4070,523 @@ export interface operations {
             };
         };
     };
+    refund_desk_api_v1_manage_outlets__outlet_id__refunds_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundDesk"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    approve_all_refunds_api_v1_manage_outlets__outlet_id__refunds_approve_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApprovedCount"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_outlet_settings_api_v1_manage_outlets__outlet_id__settings_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutletSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedOutlet"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_staff_api_v1_manage_outlets__outlet_id__staff_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffMember"][];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    add_staff_api_v1_manage_outlets__outlet_id__staff_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffAdd"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffMember"][];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_staff_api_v1_manage_outlets__outlet_id__staff__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     set_outlet_status_api_v1_manage_outlets__outlet_id__status_post: {
         parameters: {
             query?: never;
@@ -2013,6 +4599,267 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["OutletStatusUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    outlet_summary_api_v1_manage_outlets__outlet_id__summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutletSummary"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_slot_api_v1_manage_pickup_slots__slot_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlotUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagerSlot"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    decide_refund_api_v1_manage_refund_requests__request_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundDecision"];
             };
         };
         responses: {
@@ -2691,6 +5538,95 @@ export interface operations {
             };
         };
     };
+    request_refund_api_v1_orders__order_id__refund_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundRequestCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderDetail"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_outlets_api_v1_outlets_get: {
         parameters: {
             query?: never;
@@ -2707,6 +5643,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Outlet"][];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_deals_api_v1_outlets__outlet_id__deals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deal"][];
                 };
             };
             /** @description Missing or invalid access token */
@@ -3038,6 +6059,93 @@ export interface operations {
             };
         };
     };
+    withdraw_deal_api_v1_staff_deals__deal_id__withdraw_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WithdrawRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     transition_order_api_v1_staff_orders__order_id__transition_post: {
         parameters: {
             query?: never;
@@ -3216,10 +6324,95 @@ export interface operations {
             };
         };
     };
+    outlet_deals_api_v1_staff_outlets__outlet_id__deals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                outlet_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffDeal"][];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     outlet_queue_api_v1_staff_outlets__outlet_id__orders_get: {
         parameters: {
             query?: {
-                status?: ("payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "completed" | "cancelled" | "rejected")[] | null;
+                status?: ("payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected")[] | null;
             };
             header?: never;
             path: {
@@ -3235,7 +6428,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Order"][];
+                    "application/json": components["schemas"]["StaffOrder"][];
                 };
             };
             /** @description Missing or invalid access token */

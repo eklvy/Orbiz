@@ -18,6 +18,7 @@ import {
   Stepper,
   makeStyles,
 } from "@/components/ui";
+import { DealsList } from "@/components/deals";
 import { useAuth } from "@/lib/auth";
 import { confirm } from "@/lib/confirm";
 import { useCart, useMenu, useOutlet, useSetCartItem } from "@/lib/hooks";
@@ -120,6 +121,7 @@ export default function OutletScreen() {
             {o.status_reason && <Text style={{ color: t.warn }}>“{o.status_reason}”</Text>}
           </View>
         )}
+        <DealsList outletId={o.id} timeZone={o.timezone} />
         <TextInput
           accessibilityLabel="Search the menu"
           placeholder="Search the menu"

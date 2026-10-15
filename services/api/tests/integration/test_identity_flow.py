@@ -114,6 +114,7 @@ def test_seeded_manager_sees_outlet_role(gotrue: httpx.Client, api: TestClient) 
             "outlet_id": NORTH_CAFE_ID,
             "outlet_slug": "dev-north-cafe",
             "outlet_name": "Dev Sample North Café",
+            "outlet_timezone": "Asia/Kolkata",
             "role": "manager",
         }
     ]

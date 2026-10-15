@@ -5,6 +5,8 @@ import {
   formatDayLabel,
   formatPaise,
   formatSlot,
+  formatTime,
+  orderEventLabel,
   orderStatusLabel,
   queryKeys,
 } from "@campuscart/client";
@@ -15,6 +17,7 @@ import { Countdown } from "@/components/countdown";
 import { LiveIndicator } from "@/components/live-indicator";
 import { OrderStatusBadge, OrderTimeline } from "@/components/order-status";
 import { PickupPass } from "@/components/pickup-pass";
+import { RefundRequest } from "@/components/refund-request";
 import { Button } from "@/components/ui/button";
 import { ErrorState, InlineError, Skeleton } from "@/components/ui/states";
 import { getApi } from "@/lib/api";
@@ -54,10 +57,16 @@ export default function OrderPage() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{o.outlet.name}</h1>
-          <p className="text-muted">
-            Pickup {formatDayLabel(o.pickup_slot.starts_at, tz).toLowerCase()},{" "}
-            {formatSlot(o.pickup_slot.starts_at, o.pickup_slot.ends_at, tz)}
-          </p>
+          {o.pickup_slot ? (
+            <p className="text-muted">
+              Pickup {formatDayLabel(o.pickup_slot.starts_at, tz).toLowerCase()},{" "}
+              {formatSlot(o.pickup_slot.starts_at, o.pickup_slot.ends_at, tz)}
+            </p>
+          ) : (
+            <p className="text-muted">
+              Surplus deal · pick up at the counter as soon as it&apos;s paid
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1">
           <OrderStatusBadge status={o.status} />
@@ -74,7 +83,7 @@ export default function OrderPage() {
           aria-label="Payment"
         >
           <p className="font-semibold">
-            Awaiting payment — items and slot held for{" "}
+            Awaiting payment — {o.pickup_slot ? "items and slot" : "deal"} held for{" "}
             <Countdown until={o.reservation_expires_at} onElapsed={() => void order.refetch()} />
           </p>
           <p className="text-sm">
@@ -89,6 +98,23 @@ export default function OrderPage() {
       )}
 
       <PickupPass order={o} />
+
+      {o.status === "ready_for_pickup" && o.pickup_deadline && (
+        <p className="rounded-xl bg-ok-soft px-4 py-3 text-ok" data-testid="pickup-deadline">
+          Collect by <strong>{formatTime(o.pickup_deadline, tz)}</strong>. Orders not collected by
+          then aren&apos;t refunded, and the food is offered to other students.
+        </p>
+      )}
+
+      {o.status === "no_show" && (
+        <section className="rounded-2xl bg-danger-soft p-5 text-danger" aria-label="Not collected">
+          <p className="font-semibold">This order wasn&apos;t collected in time</p>
+          <p className="mt-1 text-sm">
+            Under the outlet&apos;s policy there&apos;s no refund. Sealed, packaged items went back
+            into stock, and freshly made food was offered to other students at a discount.
+          </p>
+        </section>
+      )}
 
       {o.queue_position != null && (
         <p className="rounded-xl bg-info-soft px-4 py-3 text-info" data-testid="queue-position">
@@ -129,6 +155,8 @@ export default function OrderPage() {
         </div>
       </section>
 
+      <RefundRequest order={o} />
+
       {canCancel && (
         <div className="grid gap-2">
           <InlineError error={cancel.error} />
@@ -153,7 +181,7 @@ export default function OrderPage() {
                 hour: "numeric",
                 minute: "2-digit",
               })}{" "}
-              — {orderStatusLabel(event.to_status)}
+              — {orderEventLabel(event)}
               {event.reason ? ` (${event.reason})` : ""}
             </li>
           ))}

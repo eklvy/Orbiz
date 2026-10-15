@@ -53,7 +53,12 @@ export default defineConfig({
       env: {
         CAMPUSCART_SUPABASE_URL: stack.CAMPUSCART_SUPABASE_URL ?? "",
         CAMPUSCART_DATABASE_URL: stack.CAMPUSCART_DATABASE_URL ?? "",
-        CAMPUSCART_CORS_ALLOWED_ORIGINS: JSON.stringify([`http://localhost:${WEB_PORT}`]),
+        // All local web apps, since whichever suite starts the API first serves the others too.
+        CAMPUSCART_CORS_ALLOWED_ORIGINS: JSON.stringify([
+          "http://localhost:3100",
+          "http://localhost:3101",
+          "http://localhost:3102",
+        ]),
       },
     },
     {

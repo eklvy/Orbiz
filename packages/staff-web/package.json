@@ -1,0 +1,34 @@
+{
+  "name": "@campuscart/staff-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "React pieces shared by the manager and POS/kitchen dashboards (Next.js, React 19.3): auth gate, live kitchen board, UI primitives.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0"
+  },
+  "dependencies": {
+    "@campuscart/client": "workspace:*",
+    "@campuscart/contracts": "workspace:*"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.117.0",
+    "@tanstack/react-query": "^5.104.0",
+    "react": "19.3.0"
+  },
+  "devDependencies": {
+    "@campuscart/config": "workspace:*",
+    "@supabase/supabase-js": "2.117.3",
+    "@tanstack/react-query": "5.104.2",
+    "@types/react": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.0",
+    "react": "19.3.0",
+    "typescript": "5.9.3"
+  }
+}
