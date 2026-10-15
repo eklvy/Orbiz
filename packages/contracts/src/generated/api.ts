@@ -4,6 +4,25 @@
  */
 
 export interface paths {
+    "/api/v1/budget": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Budget */
+        get: operations["get_budget_api_v1_budget_get"];
+        /** Set Budget */
+        put: operations["set_budget_api_v1_budget_put"];
+        post?: never;
+        /** Clear Budget */
+        delete: operations["clear_budget_api_v1_budget_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cart": {
         parameters: {
             query?: never;
@@ -95,6 +114,46 @@ export interface paths {
         get: operations["ready_api_v1_health_ready_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loyalty": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Loyalty
+         * @description Points, tier, recent activity, vouchers, and the earning rules (D-15).
+         */
+        get: operations["get_loyalty_api_v1_loyalty_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loyalty/vouchers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Redeem Voucher
+         * @description Spend 100 points on a ₹10 voucher (valid 90 days).
+         */
+        post: operations["redeem_voucher_api_v1_loyalty_vouchers_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -618,6 +677,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{order_id}/pay-with-wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pay With Wallet
+         * @description Pays an unpaid order from the wallet in one transaction. Retrying is safe.
+         */
+        post: operations["pay_with_wallet_api_v1_orders__order_id__pay_with_wallet_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{order_id}/refund-request": {
         parameters: {
             query?: never;
@@ -633,6 +712,26 @@ export interface paths {
          *     decides. Uncollected (no-show) orders are not refundable.
          */
         post: operations["request_refund_api_v1_orders__order_id__refund_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{order_id}/voucher": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Voucher
+         * @description Apply one of your vouchers to your unpaid order; the server lowers the total.
+         */
+        post: operations["apply_voucher_api_v1_orders__order_id__voucher_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -730,6 +829,68 @@ export interface paths {
         get: operations["get_outlet_api_v1_outlets__outlet_ref__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payments Config
+         * @description Whether online (Razorpay) payment is available on this server, and its public key id.
+         */
+        get: operations["payments_config_api_v1_payments_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/razorpay/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Checkout
+         * @description Creates a Razorpay order for an unpaid order (amount from the server) or a wallet top-up,
+         *     for Razorpay Checkout in the browser.
+         */
+        post: operations["start_checkout_api_v1_payments_razorpay_checkout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/razorpay/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Checkout
+         * @description Checkout success callback: verifies Razorpay's signature, then records the capture (pays
+         *     the order or credits the wallet). Safe to call again; the webhook does the same.
+         */
+        post: operations["verify_checkout_api_v1_payments_razorpay_verify_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -835,6 +996,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Wallet */
+        get: operations["get_wallet_api_v1_wallet_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -851,6 +1029,50 @@ export interface components {
              * @enum {string}
              */
             manual_status: "available" | "low" | "sold_out";
+        };
+        /**
+         * Budget
+         * @description Spending from paid, unrefunded orders (outlet business dates, campus time zone).
+         */
+        Budget: {
+            /** By Category */
+            by_category: components["schemas"]["CategorySpend"][];
+            /** Daily Limit Paise */
+            daily_limit_paise: number | null;
+            /**
+             * Month
+             * Format: date
+             */
+            month: string;
+            /** Month Spent Paise */
+            month_spent_paise: number;
+            /** Month Status */
+            month_status: ("ok" | "near" | "over") | null;
+            /** Monthly Limit Paise */
+            monthly_limit_paise: number | null;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /** Today Spent Paise */
+            today_spent_paise: number;
+            /** Today Status */
+            today_status: ("ok" | "near" | "over") | null;
+            /** Warn At Percent */
+            warn_at_percent: number | null;
+        };
+        /** BudgetUpdate */
+        BudgetUpdate: {
+            /** Daily Limit Paise */
+            daily_limit_paise?: number | null;
+            /** Monthly Limit Paise */
+            monthly_limit_paise: number;
+            /**
+             * Warn At Percent
+             * @default 80
+             */
+            warn_at_percent: number;
         };
         /** CancelRequest */
         CancelRequest: {
@@ -915,6 +1137,57 @@ export interface components {
              * @default 0
              */
             sort_order: number;
+        };
+        /** CategorySpend */
+        CategorySpend: {
+            /** Category */
+            category: string;
+            /** Paise */
+            paise: number;
+        };
+        /** Checkout */
+        Checkout: {
+            /** Amount Paise */
+            amount_paise: number;
+            /**
+             * Currency
+             * @constant
+             */
+            currency: "INR";
+            /** Key Id */
+            key_id: string;
+            /**
+             * Payment Id
+             * Format: uuid
+             */
+            payment_id: string;
+            /** Provider Order Id */
+            provider_order_id: string;
+        };
+        /**
+         * CheckoutRequest
+         * @description Start an online payment. For an order the server reads the amount; for a top-up the
+         *     student picks it (₹50 to ₹5,000).
+         */
+        CheckoutRequest: {
+            /** Amount Paise */
+            amount_paise?: number | null;
+            /** Order Id */
+            order_id?: string | null;
+            /**
+             * Purpose
+             * @enum {string}
+             */
+            purpose: "order" | "wallet_topup";
+        };
+        /** CheckoutVerification */
+        CheckoutVerification: {
+            /** Razorpay Order Id */
+            razorpay_order_id: string;
+            /** Razorpay Payment Id */
+            razorpay_payment_id: string;
+            /** Razorpay Signature */
+            razorpay_signature: string;
         };
         /**
          * Deal
@@ -1006,6 +1279,97 @@ export interface components {
             status: "ok";
             /** Version */
             version: string;
+        };
+        /** Loyalty */
+        Loyalty: {
+            /** Balance Points */
+            balance_points: number;
+            /** Entries */
+            entries: components["schemas"]["LoyaltyEntry"][];
+            /** Lifetime Points */
+            lifetime_points: number;
+            /** Next Tier */
+            next_tier: ("silver" | "gold" | "platinum") | null;
+            /** Points To Next Tier */
+            points_to_next_tier: number | null;
+            rules: components["schemas"]["LoyaltyRules"];
+            /**
+             * Tier
+             * @enum {string}
+             */
+            tier: "silver" | "gold" | "platinum";
+            /** Vouchers */
+            vouchers: components["schemas"]["Voucher"][];
+        };
+        /** LoyaltyEntry */
+        LoyaltyEntry: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Order Id */
+            order_id: string | null;
+            /** Points */
+            points: number;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "order_paid" | "order_refunded" | "topup_bonus" | "review" | "voucher_redeemed";
+        };
+        /**
+         * LoyaltyRules
+         * @description D-15 (decided 2026-10-15). Shown to students exactly as the server applies them.
+         */
+        LoyaltyRules: {
+            /**
+             * Points Per 10 Rupees
+             * @default 1
+             */
+            points_per_10_rupees: number;
+            /**
+             * Review Points
+             * @default 15
+             */
+            review_points: number;
+            /**
+             * Tier Gold
+             * @default 1000
+             */
+            tier_gold: number;
+            /**
+             * Tier Platinum
+             * @default 3000
+             */
+            tier_platinum: number;
+            /**
+             * Tier Silver
+             * @default 0
+             */
+            tier_silver: number;
+            /**
+             * Topup Bonus Min Paise
+             * @default 99900
+             */
+            topup_bonus_min_paise: number;
+            /**
+             * Topup Bonus Points
+             * @default 50
+             */
+            topup_bonus_points: number;
+            /**
+             * Voucher Cost Points
+             * @default 100
+             */
+            voucher_cost_points: number;
+            /**
+             * Voucher Value Paise
+             * @default 1000
+             */
+            voucher_value_paise: number;
         };
         /** ManagedOutlet */
         ManagedOutlet: {
@@ -1336,6 +1700,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Discount Paise */
+            discount_paise: number;
             /**
              * Id
              * Format: uuid
@@ -1345,6 +1711,8 @@ export interface components {
             item_count: number;
             /** Items */
             items: components["schemas"]["OrderItem"][];
+            /** Loyalty Points */
+            loyalty_points: number | null;
             /** No Show At */
             no_show_at: string | null;
             outlet: components["schemas"]["OutletRef"];
@@ -1429,6 +1797,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Discount Paise */
+            discount_paise: number;
             /** Events */
             events: components["schemas"]["OrderEvent"][];
             /**
@@ -1440,6 +1810,8 @@ export interface components {
             item_count: number;
             /** Items */
             items: components["schemas"]["OrderItem"][];
+            /** Loyalty Points */
+            loyalty_points: number | null;
             /** No Show At */
             no_show_at: string | null;
             outlet: components["schemas"]["OutletRef"];
@@ -1712,11 +2084,13 @@ export interface components {
             pending_refund_requests: number;
             /** Refunds Owed Paise */
             refunds_owed_paise: number;
+            /** Refunds Paid Today Paise */
+            refunds_paid_today_paise: number;
         };
         /**
          * OwedRefund
-         * @description A refund the system already owes (no request needed), e.g. the kitchen cancelled a paid
-         *     order. Paid out by the Phase 5 refund workflow.
+         * @description A refund owed without a request (e.g. the kitchen cancelled a paid order), owed or already
+         *     paid into the student's wallet within the last 30 days.
          */
         OwedRefund: {
             /** Amount Paise */
@@ -1742,6 +2116,37 @@ export interface components {
              * Format: date-time
              */
             owed_since: string;
+            /** Paid Out */
+            paid_out: boolean;
+        };
+        /** PaymentResult */
+        PaymentResult: {
+            /** Order Id */
+            order_id: string | null;
+            /** Outcome */
+            outcome: string | null;
+            /**
+             * Payment Id
+             * Format: uuid
+             */
+            payment_id: string;
+            /**
+             * Purpose
+             * @enum {string}
+             */
+            purpose: "order" | "wallet_topup";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "created" | "captured" | "failed";
+        };
+        /** PaymentsConfig */
+        PaymentsConfig: {
+            /** Razorpay Enabled */
+            razorpay_enabled: boolean;
+            /** Razorpay Key Id */
+            razorpay_key_id: string | null;
         };
         /** PickupSlot */
         PickupSlot: {
@@ -2046,6 +2451,8 @@ export interface components {
             customer_name: string | null;
             /** Deal Source Token */
             deal_source_token: string | null;
+            /** Discount Paise */
+            discount_paise: number;
             /**
              * Id
              * Format: uuid
@@ -2055,6 +2462,8 @@ export interface components {
             item_count: number;
             /** Items */
             items: components["schemas"]["OrderItem"][];
+            /** Loyalty Points */
+            loyalty_points: number | null;
             /** No Show At */
             no_show_at: string | null;
             outlet: components["schemas"]["OutletRef"];
@@ -2177,6 +2586,72 @@ export interface components {
              */
             to_status: "payment_pending" | "placed" | "confirmed" | "preparing" | "ready_for_pickup" | "no_show" | "completed" | "cancelled" | "rejected";
         };
+        /** Voucher */
+        Voucher: {
+            /** Code */
+            code: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Order Id */
+            order_id: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "available" | "applied" | "used" | "expired";
+            /** Value Paise */
+            value_paise: number;
+        };
+        /** VoucherApply */
+        VoucherApply: {
+            /** Code */
+            code: string;
+        };
+        /** Wallet */
+        Wallet: {
+            /** Balance Paise */
+            balance_paise: number;
+            /** Entries */
+            entries: components["schemas"]["WalletEntry"][];
+            /** Next Cursor */
+            next_cursor: number | null;
+        };
+        /** WalletEntry */
+        WalletEntry: {
+            /** Amount Paise */
+            amount_paise: number;
+            /** Balance After Paise */
+            balance_after_paise: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "topup" | "order_payment" | "refund" | "transfer_out" | "transfer_in" | "adjustment";
+            /** Note */
+            note: string | null;
+            /** Order Id */
+            order_id: string | null;
+        };
         /** WithdrawRequest */
         WithdrawRequest: {
             /** Reason */
@@ -2191,17 +2666,26 @@ export interface components {
 }
 export type ApprovedCount = components['schemas']['ApprovedCount'];
 export type AvailabilityUpdate = components['schemas']['AvailabilityUpdate'];
+export type Budget = components['schemas']['Budget'];
+export type BudgetUpdate = components['schemas']['BudgetUpdate'];
 export type CancelRequest = components['schemas']['CancelRequest'];
 export type Cart = components['schemas']['Cart'];
 export type CartItem = components['schemas']['CartItem'];
 export type CartItemSet = components['schemas']['CartItemSet'];
 export type CategoryInput = components['schemas']['CategoryInput'];
+export type CategorySpend = components['schemas']['CategorySpend'];
+export type Checkout = components['schemas']['Checkout'];
+export type CheckoutRequest = components['schemas']['CheckoutRequest'];
+export type CheckoutVerification = components['schemas']['CheckoutVerification'];
 export type Deal = components['schemas']['Deal'];
 export type DealItem = components['schemas']['DealItem'];
 export type Environment = components['schemas']['Environment'];
 export type ErrorDetail = components['schemas']['ErrorDetail'];
 export type ErrorResponse = components['schemas']['ErrorResponse'];
 export type HealthResponse = components['schemas']['HealthResponse'];
+export type Loyalty = components['schemas']['Loyalty'];
+export type LoyaltyEntry = components['schemas']['LoyaltyEntry'];
+export type LoyaltyRules = components['schemas']['LoyaltyRules'];
 export type ManagedOutlet = components['schemas']['ManagedOutlet'];
 export type ManagerCategory = components['schemas']['ManagerCategory'];
 export type ManagerMenu = components['schemas']['ManagerMenu'];
@@ -2230,6 +2714,8 @@ export type OutletSettingsUpdate = components['schemas']['OutletSettingsUpdate']
 export type OutletStatusUpdate = components['schemas']['OutletStatusUpdate'];
 export type OutletSummary = components['schemas']['OutletSummary'];
 export type OwedRefund = components['schemas']['OwedRefund'];
+export type PaymentResult = components['schemas']['PaymentResult'];
+export type PaymentsConfig = components['schemas']['PaymentsConfig'];
 export type PickupSlot = components['schemas']['PickupSlot'];
 export type PickupSlotRef = components['schemas']['PickupSlotRef'];
 export type PickupVerifyRequest = components['schemas']['PickupVerifyRequest'];
@@ -2253,9 +2739,264 @@ export type StockLevel = components['schemas']['StockLevel'];
 export type StockTracking = components['schemas']['StockTracking'];
 export type TransitionRequest = components['schemas']['TransitionRequest'];
 export type TransitionRule = components['schemas']['TransitionRule'];
+export type Voucher = components['schemas']['Voucher'];
+export type VoucherApply = components['schemas']['VoucherApply'];
+export type Wallet = components['schemas']['Wallet'];
+export type WalletEntry = components['schemas']['WalletEntry'];
 export type WithdrawRequest = components['schemas']['WithdrawRequest'];
 export type $defs = Record<string, never>;
 export interface operations {
+    get_budget_api_v1_budget_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Budget"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_budget_api_v1_budget_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Budget"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    clear_budget_api_v1_budget_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     get_cart_api_v1_cart_get: {
         parameters: {
             query?: never;
@@ -2783,6 +3524,172 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_loyalty_api_v1_loyalty_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Loyalty"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    redeem_voucher_api_v1_loyalty_vouchers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Voucher"];
                 };
             };
             /** @description Missing or invalid access token */
@@ -5538,6 +6445,91 @@ export interface operations {
             };
         };
     };
+    pay_with_wallet_api_v1_orders__order_id__pay_with_wallet_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderDetail"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     request_refund_api_v1_orders__order_id__refund_request_post: {
         parameters: {
             query?: never;
@@ -5555,6 +6547,95 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderDetail"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    apply_voucher_api_v1_orders__order_id__voucher_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoucherApply"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6059,6 +7140,263 @@ export interface operations {
             };
         };
     };
+    payments_config_api_v1_payments_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentsConfig"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    start_checkout_api_v1_payments_razorpay_checkout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Checkout"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    verify_checkout_api_v1_payments_razorpay_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutVerification"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResult"];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     withdraw_deal_api_v1_staff_deals__deal_id__withdraw_post: {
         parameters: {
             query?: never;
@@ -6429,6 +7767,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StaffOrder"][];
+                };
+            };
+            /** @description Missing or invalid access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Authenticated but not allowed */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not found (or not visible to the caller) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflicts with current state (stock, slot, transition, idempotency…) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description A required dependency is unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_wallet_api_v1_wallet_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Wallet"];
                 };
             };
             /** @description Missing or invalid access token */

@@ -346,6 +346,19 @@ async def summary(conn: Connection, outlet_id: UUID) -> OutletSummary:
 
     cur = await conn.execute(
         """
+        select coalesce(sum(o.total_paise), 0)::bigint as paid
+        from public.order_events e
+        join public.orders o on o.id = e.order_id
+        join public.outlets ot on ot.id = o.outlet_id
+        where o.outlet_id = %s and e.event_type = 'refund_paid'
+          and (e.created_at at time zone ot.timezone)::date = %s
+        """,
+        (outlet_id, today),
+    )
+    paid_row = await cur.fetchone()
+
+    cur = await conn.execute(
+        """
         select d.status::text as status, count(*)::int as n,
                coalesce(sum(d.price_paise) filter (where d.status = 'sold'), 0)::bigint as sold
         from public.surplus_deals d
@@ -375,6 +388,7 @@ async def summary(conn: Connection, outlet_id: UUID) -> OutletSummary:
         paid_orders=sum(by_status.values()),
         gross_paid_paise=gross,
         refunds_owed_paise=int(owed_row["owed"]) if owed_row else 0,
+        refunds_paid_today_paise=int(paid_row["paid"]) if paid_row else 0,
         no_shows=by_status.get("no_show", 0),
         deals=deals,
         deal_sales_paise=deal_sales,

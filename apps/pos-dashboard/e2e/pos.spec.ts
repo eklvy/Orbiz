@@ -82,11 +82,9 @@ test("rejecting needs a reason, and the paid student is owed a refund", async ({
     student.email,
     `/orders/${order.id}`,
   );
-  expect(after).toMatchObject({
-    status: "rejected",
-    refund_status: "required",
-    cancel_reason: "Out of eggs",
-  });
+  expect(after).toMatchObject({ status: "rejected", cancel_reason: "Out of eggs" });
+  // Owed, or already paid into the wallet by the minute payout job (D-20).
+  expect(["required", "refunded"]).toContain(after.refund_status);
 });
 
 test("a scanned pickup QR completes the right order", async ({ page }) => {

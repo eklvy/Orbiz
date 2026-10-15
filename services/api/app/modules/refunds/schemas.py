@@ -36,8 +36,8 @@ class RefundRequestEntry(BaseModel):
 
 
 class OwedRefund(BaseModel):
-    """A refund the system already owes (no request needed), e.g. the kitchen cancelled a paid
-    order. Paid out by the Phase 5 refund workflow."""
+    """A refund owed without a request (e.g. the kitchen cancelled a paid order), owed or already
+    paid into the student's wallet within the last 30 days."""
 
     order_id: UUID
     order_token: str | None
@@ -46,6 +46,8 @@ class OwedRefund(BaseModel):
     order_status: OrderStatus
     cancel_reason: str | None
     owed_since: datetime
+    # True once the refund has been paid into the student's wallet (D-20).
+    paid_out: bool
 
 
 class RefundDesk(BaseModel):

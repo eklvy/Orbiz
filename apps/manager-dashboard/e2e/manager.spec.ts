@@ -168,8 +168,9 @@ test("refunds desk: approve and decline student requests", async ({ page }) => {
 
   await requestA.getByRole("button", { name: /^Approve ₹55 refund$/ }).click();
   await expect(requestA).toHaveCount(0);
-  expect((await api<{ refund_status: string }>(first.email, `/orders/${a.id}`)).refund_status).toBe(
-    "required",
+  // Owed, or already paid into the wallet by the minute payout job (D-20).
+  expect(["required", "refunded"]).toContain(
+    (await api<{ refund_status: string }>(first.email, `/orders/${a.id}`)).refund_status,
   );
 
   await requestB.getByRole("button", { name: "Decline" }).click();

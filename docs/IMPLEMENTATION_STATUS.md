@@ -14,7 +14,7 @@ Last updated: 2026-10-15 (Phase 4).
 | 2 | Core backend, ordering, inventory, real-time events | **COMPLETE** |
 | 3 | Student website + student mobile app | **COMPLETE** (native simulator run blocked) |
 | 4 | Manager dashboard + POS/kitchen dashboard | **COMPLETE** (RLS mutation check outstanding) |
-| 5 | Payments, wallets, group orders, notifications, loyalty, budgets, specials/polls/reviews | NOT STARTED |
+| 5 | Payments, wallets, group orders, notifications, loyalty, budgets, specials/polls/reviews | **IN PROGRESS** |
 | 6A | RL environments, reward design, baselines | NOT STARTED |
 | 6B | RL training, evaluation, reproducibility, comparisons | NOT STARTED |
 | 6C | Live RL integration, fallbacks, RL Insights | NOT STARTED |
@@ -405,6 +405,40 @@ static prerender (they now render only in the browser); a test waited on the pre
 - Camera QR scanning isn't built; the counter uses a keyboard-wedge scanner or the typed code.
 - `inventory` has no outlet column, so the manager menu refetches on any outlet's stock change.
 - Students aren't notified (push/email) when their order becomes a no-show; notifications are Phase 5.
+
+---
+
+## Phase 5 — IN PROGRESS
+
+Branch `phase-5/payments-wallet-social` (from `main` after merging Phase 4, PR #3).
+
+### Decisions (product owner, 2026-10-15)
+D-6 no signup bonus · D-15 loyalty: 1 pt per ₹10 paid, +50 for a ₹999+ top-up, +15 per review, tiers
+Silver 0 / Gold 1,000 / Platinum 3,000 lifetime points, 100 pts = ₹10 voucher, reversed on refund ·
+D-18 online payment only.
+
+### Defaults we chose (open to change; see REQUIREMENTS.md D-20…)
+- Refunds owed are paid into the student's CampusCart wallet automatically (instant, ledgered). Card refunds
+  through Razorpay are not built.
+- Wallet: top-up ₹50–₹5,000 via Razorpay; balance cap ₹10,000; no withdrawal to bank; transfers only to
+  settle bill splits and group-order shares.
+- Mobile app pays from the wallet; top-ups happen on the website (Razorpay Checkout is web-only without a
+  native module).
+- Without Razorpay test keys, payment code is verified with locally signed test webhooks/signatures and a
+  stubbed provider API; it has not talked to Razorpay. Without an Expo token, push is stored but not sent.
+
+### Plan (milestones, in order)
+1. Money core: `payments` (Razorpay orders, signature verify, signed idempotent webhooks), wallet accounts +
+   append-only ledger, pay-with-wallet, refund payout to wallet, shared `private.mark_order_paid`.
+2. Loyalty ledger, tiers, vouchers (redeem; apply to an unpaid order), budget planner.
+3. Notifications centre (table, triggers, Realtime, unread count; Expo push if configured).
+4. Specials (portions, discount priced by the server at order time), polls (one vote, manager publishes the
+   winner as tomorrow's special), reviews (4 dimensions, +15 pts, staff replies, outlet leaderboard),
+   "popular with your classmates" (k ≥ 5).
+5. Group orders (shared tray, add for a member, split by dish / equally / %, per-member wallet payment),
+   party sessions (catering requests a manager accepts, paid from the wallet), bill splits (settled by wallet
+   transfer).
+6. Student web + mobile screens, manager screens (specials, polls, reviews, party requests), tests, docs.
 
 ---
 

@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from app.api.v1 import cart, deals, health, manage, me, orders, outlets, staff
+from app.api.v1 import cart, deals, health, manage, me, orders, outlets, payments, rewards, staff
 from app.core.errors import ErrorResponse
 
 # Every error uses the same envelope (including request validation, which FastAPI would
@@ -27,5 +27,7 @@ api_router.include_router(outlets.router)
 api_router.include_router(cart.router)
 api_router.include_router(orders.router)
 api_router.include_router(deals.router)
+api_router.include_router(payments.router)
+api_router.include_router(rewards.router)
 api_router.include_router(staff.router)
 api_router.include_router(manage.router)

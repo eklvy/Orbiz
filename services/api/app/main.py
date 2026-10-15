@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+import httpx2 as httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,9 +13,13 @@ from app.core.db import Database
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.core.request_context import register_request_context
+from app.modules.payments.provider import Razorpay
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, *, http_transport: httpx.AsyncBaseTransport | None = None
+) -> FastAPI:
+    """`http_transport` replaces outbound HTTP (Razorpay, Expo) in tests only."""
     settings = settings or get_settings()
     configure_logging(settings.log_level)
 
@@ -28,6 +33,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         else None
     )
 
+    razorpay = Razorpay(settings, http_transport) if settings.payments_enabled else None
+
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         if db is not None:
@@ -35,6 +42,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         try:
             yield
         finally:
+            if razorpay is not None:
+                await razorpay.close()
             if db is not None:
                 await db.close()
 
@@ -48,6 +57,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.db = db
+    app.state.razorpay = razorpay
+    app.state.http_transport = http_transport
     app.state.token_verifier = TokenVerifier.from_settings(settings)
     app.add_middleware(
         CORSMiddleware,

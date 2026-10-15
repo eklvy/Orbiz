@@ -349,14 +349,15 @@ def test_refunds_desk(
         f"/api/v1/manage/outlets/{outlet.id}/refunds/approve-all", headers=manager.headers
     )
     assert approved.json() == {"approved": 1}
-    assert (
-        api.get(f"/api/v1/orders/{second}", headers=students[1].headers).json()["refund_status"]
-        == "required"
-    )
+    # Owed, or already paid into the wallet by the minute payout job (D-20).
+    assert api.get(f"/api/v1/orders/{second}", headers=students[1].headers).json()[
+        "refund_status"
+    ] in ("required", "refunded")
 
     desk = api.get(f"/api/v1/manage/outlets/{outlet.id}/refunds", headers=manager.headers).json()
     assert desk["pending"] == []
     assert {d["status"] for d in desk["decided"]} == {"approved", "declined"}
     assert desk["median_resolution_minutes_7d"] is not None
     summary = api.get(f"/api/v1/manage/outlets/{outlet.id}/summary", headers=manager.headers)
-    assert summary.json()["refunds_owed_paise"] == 14000  # the approved one + the rejected one
+    figures = summary.json()  # the approved one + the rejected one, owed or already paid out
+    assert figures["refunds_owed_paise"] + figures["refunds_paid_today_paise"] == 14000
