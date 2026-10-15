@@ -18,12 +18,15 @@ async def get_cart(conn: Connection, principal: Principal) -> Cart:
 
     cur = await conn.execute(
         """
-        select ci.menu_item_id, m.name, m.price_paise as unit_price_paise, ci.quantity,
-               m.price_paise * ci.quantity as line_total_paise,
+        select ci.menu_item_id, m.name,
+               coalesce(sp.unit_price_paise, m.price_paise) as unit_price_paise, ci.quantity,
+               coalesce(sp.unit_price_paise, m.price_paise) * ci.quantity as line_total_paise,
+               sp.discount_percent as special_discount_percent,
                m.stock_status::text as stock_status,
                (m.is_active and m.stock_status <> 'sold_out') as orderable
         from public.cart_items ci
         join public.menu_items m on m.id = ci.menu_item_id
+        left join lateral app.item_special(m.id) sp on true
         where ci.user_id = %s
         order by ci.added_at, m.name
         """,

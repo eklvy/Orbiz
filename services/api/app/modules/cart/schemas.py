@@ -11,8 +11,9 @@ MAX_CART_LINES = 20
 class CartItem(BaseModel):
     menu_item_id: UUID
     name: str
-    # Current menu price; the order snapshots the price at checkout.
+    # Current price (today's special price if there is one); the order snapshots it at checkout.
     unit_price_paise: int
+    special_discount_percent: int | None
     quantity: int
     line_total_paise: int
     stock_status: StockStatus

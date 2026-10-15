@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     cart,
     deals,
+    engagement,
     health,
     manage,
     me,
@@ -42,5 +43,6 @@ api_router.include_router(deals.router)
 api_router.include_router(payments.router)
 api_router.include_router(rewards.router)
 api_router.include_router(notifications.router)
+api_router.include_router(engagement.router)
 api_router.include_router(staff.router)
 api_router.include_router(manage.router)

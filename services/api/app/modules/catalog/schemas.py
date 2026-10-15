@@ -42,6 +42,15 @@ class OutletDetail(Outlet):
     hours: list[OpeningHours]
 
 
+class TodaySpecial(BaseModel):
+    """Today's special for an item: the server-computed price and portions left (D-16)."""
+
+    special_id: UUID
+    unit_price_paise: int
+    discount_percent: int
+    portions_left: int
+
+
 class MenuItem(BaseModel):
     id: UUID
     category_id: UUID | None
@@ -55,6 +64,7 @@ class MenuItem(BaseModel):
     stock_status: StockStatus
     # Present only for items that track quantity.
     quantity_available: int | None
+    special: TodaySpecial | None = None
 
 
 class MenuCategory(BaseModel):
