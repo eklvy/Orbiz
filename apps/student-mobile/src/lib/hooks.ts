@@ -166,3 +166,56 @@ export function useMe() {
   const { session } = useAuth();
   return useQuery({ queryKey: queryKeys.me, queryFn: api.getMe, enabled: Boolean(session) });
 }
+
+// --- Phase 5 -----------------------------------------------------------------------------------
+
+function useOwnRowLive(
+  table: "wallet_accounts" | "loyalty_accounts" | "notifications",
+  key: readonly unknown[],
+) {
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = session?.user.id;
+  const serialized = JSON.stringify(key);
+  useEffect(() => {
+    if (!userId) return;
+    const refresh = () =>
+      void queryClient.invalidateQueries({ queryKey: JSON.parse(serialized) as unknown[] });
+    return subscribeToTable(supabase, {
+      table,
+      filter: `user_id=eq.${userId}`,
+      onChange: refresh,
+      onResync: refresh,
+    });
+  }, [table, userId, serialized, queryClient]);
+}
+
+export function useWallet() {
+  const { session } = useAuth();
+  useOwnRowLive("wallet_accounts", queryKeys.wallet);
+  return useQuery({
+    queryKey: queryKeys.wallet,
+    queryFn: () => api.getWallet(),
+    enabled: Boolean(session),
+  });
+}
+
+export function useLoyalty() {
+  const { session } = useAuth();
+  useOwnRowLive("loyalty_accounts", queryKeys.loyalty);
+  return useQuery({
+    queryKey: queryKeys.loyalty,
+    queryFn: () => api.getLoyalty(),
+    enabled: Boolean(session),
+  });
+}
+
+export function useNotifications() {
+  const { session } = useAuth();
+  useOwnRowLive("notifications", queryKeys.notifications);
+  return useQuery({
+    queryKey: queryKeys.notifications,
+    queryFn: () => api.listNotifications(),
+    enabled: Boolean(session),
+  });
+}
