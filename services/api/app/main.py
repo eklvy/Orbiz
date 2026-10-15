@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -13,6 +14,7 @@ from app.core.db import Database
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.core.request_context import register_request_context
+from app.modules.notifications.service import push_loop
 from app.modules.payments.provider import Razorpay
 
 
@@ -39,9 +41,16 @@ def create_app(
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         if db is not None:
             await db.open()
+        pusher = (
+            asyncio.create_task(push_loop(db, settings, http_transport))
+            if db is not None and settings.expo_access_token is not None
+            else None
+        )
         try:
             yield
         finally:
+            if pusher is not None:
+                pusher.cancel()
             if razorpay is not None:
                 await razorpay.close()
             if db is not None:
