@@ -851,6 +851,88 @@ begin
 end;
 $$;
 
+
+
+-- Queue position for the group's order is visible to its members too.
+create or replace function app.order_queue_position(p_order_id uuid)
+returns integer
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_order public.orders;
+  v_slot_start timestamptz;
+  v_ahead integer;
+begin
+  select * into v_order from public.orders where id = p_order_id;
+  if not found or not (
+    v_order.user_id = auth.uid() or private.is_outlet_staff(v_order.outlet_id) or private.is_admin()
+    or (v_order.group_session_id is not null and private.is_group_member(v_order.group_session_id))
+  ) then
+    perform private.fail(404, 'order_not_found', 'Order not found');
+  end if;
+  if v_order.status not in ('placed', 'confirmed', 'preparing') then
+    return null;
+  end if;
+  select starts_at into v_slot_start from public.pickup_slots where id = v_order.pickup_slot_id;
+
+  select count(*) into v_ahead
+  from public.orders o
+  join public.pickup_slots s on s.id = o.pickup_slot_id
+  where o.outlet_id = v_order.outlet_id
+    and o.id <> v_order.id
+    and o.status in ('placed', 'confirmed', 'preparing')
+    and (s.starts_at, o.placed_at, o.token_number) < (v_slot_start, v_order.placed_at, v_order.token_number);
+  return v_ahead;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Names for people who share something (profiles are otherwise private): only full names, only
+-- to members of the same group / split, or to the outlet's managers for party bookings.
+-- ---------------------------------------------------------------------------
+create function app.group_member_names(p_session uuid)
+returns table (user_id uuid, full_name text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select m.user_id, p.full_name from public.group_members m
+  join public.profiles p on p.id = m.user_id
+  where m.session_id = p_session and private.is_group_member(p_session);
+$$;
+
+create function app.split_people(p_split uuid)
+returns table (user_id uuid, full_name text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select p.id, p.full_name from public.profiles p
+  where private.is_split_participant(p_split)
+    and (p.id = (select creator_id from public.bill_splits where id = p_split)
+         or p.id in (select user_id from public.bill_split_shares where split_id = p_split));
+$$;
+
+create function app.party_customer_names(p_booking_ids uuid[])
+returns table (booking_id uuid, full_name text)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select b.id, p.full_name from public.party_bookings b join public.profiles p on p.id = b.user_id
+  where b.id = any(p_booking_ids) and (private.is_outlet_manager(b.outlet_id) or private.is_admin());
+$$;
+
+revoke all on function app.group_member_names(uuid), app.split_people(uuid), app.party_customer_names(uuid[]) from public;
+grant execute on function app.group_member_names(uuid), app.split_people(uuid), app.party_customer_names(uuid[])
+  to authenticated, service_role;
+
 -- ---------------------------------------------------------------------------
 -- Privileges, RLS, Realtime
 -- ---------------------------------------------------------------------------

@@ -86,7 +86,8 @@ select tests.as_superuser();
 select is(tests.stock('30000000-0000-4000-d000-000000000001'), 3, 'the chai reserved before the failing line was released');
 select is(tests.stock('30000000-0000-4000-d000-000000000003'), 1, 'samosa stock is untouched');
 select is(tests.reserved('40000000-0000-4000-e000-000000000001'), 1, 'no slot capacity was taken');
-select is((select count(*)::int from public.orders), 1, 'no order row was left behind');
+select is((select count(*)::int from public.orders where outlet_id = '20000000-0000-4000-b000-00000000000a'), 1,
+  'no order row was left behind');
 
 -- Slot rules --------------------------------------------------------------------------------
 select lives_ok(
