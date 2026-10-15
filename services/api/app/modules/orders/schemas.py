@@ -94,6 +94,8 @@ class Order(BaseModel):
     pickup_slot: PickupSlotRef | None
     # Set when this order bought a surplus deal (food from another student's uncollected order).
     source_deal_id: UUID | None
+    # Set for a group order: it is paid share by share (POST /groups/{id}/pay).
+    group_session_id: UUID | None
     status: OrderStatus
     payment_status: PaymentStatus
     refund_status: RefundStatus

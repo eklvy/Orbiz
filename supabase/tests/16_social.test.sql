@@ -2,7 +2,7 @@
 -- also orders as a customer at outlet A; admin …0001 plays an outsider; manager A …0002.
 begin;
 \ir _helpers.psql
-select plan(38);
+select plan(40);
 
 select tests.seed_ordering_fixture();
 create temporary table t_ids (name text primary key, id uuid);
@@ -60,6 +60,10 @@ select is((select total_paise from public.orders where id = (select id from t_id
 select throws_ok($$ select app.set_group_item((select id from t_ids where name = 'g1'), auth.uid(), '30000000-0000-4000-d000-000000000002', 2) $$,
   'CC409', null, 'the tray is frozen after checkout');
 
+select throws_ok($$ select app.pay_order_with_wallet((select id from t_ids where name = 'g1_order')) $$,
+  'CC409', 'Pay your share from the group order instead', 'the host can''t pay the whole group order alone');
+select throws_ok($$ select app.order_payment_amount((select id from t_ids where name = 'g1_order')) $$,
+  'CC409', null, 'nor start a card payment for it');
 select tests.authenticate_as('10000000-0000-4000-a000-000000000006');
 select is((select count(*)::int from public.orders where id = (select id from t_ids where name = 'g1_order')), 1,
   'members can follow the group''s order');

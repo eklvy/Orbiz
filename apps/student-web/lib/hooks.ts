@@ -223,3 +223,172 @@ export function useMe() {
     enabled: Boolean(session),
   });
 }
+
+// --- Phase 5 ------------------------------------------------------------------------------------
+
+/** Refetches `key` whenever the signed-in user's row in `table` changes (RLS-filtered events). */
+function useOwnRowLive(
+  table: "wallet_accounts" | "loyalty_accounts" | "notifications",
+  keys: readonly (readonly unknown[])[],
+) {
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = session?.user.id;
+  const serialized = JSON.stringify(keys);
+  useEffect(() => {
+    if (!userId) return;
+    const refresh = () => {
+      for (const key of JSON.parse(serialized) as unknown[][]) {
+        void queryClient.invalidateQueries({ queryKey: key });
+      }
+    };
+    return subscribeToTable(getSupabase(), {
+      table,
+      filter: `user_id=eq.${userId}`,
+      onChange: refresh,
+      onResync: refresh,
+    });
+  }, [table, userId, serialized, queryClient]);
+}
+
+export function usePaymentsConfig() {
+  return useQuery({
+    queryKey: queryKeys.paymentsConfig,
+    queryFn: () => getApi().paymentsConfig(),
+    staleTime: Infinity,
+  });
+}
+
+export function useWallet() {
+  const { session } = useAuth();
+  useOwnRowLive("wallet_accounts", [queryKeys.wallet]);
+  return useQuery({
+    queryKey: queryKeys.wallet,
+    queryFn: () => getApi().getWallet(),
+    enabled: Boolean(session),
+  });
+}
+
+export function useLoyalty() {
+  const { session } = useAuth();
+  useOwnRowLive("loyalty_accounts", [queryKeys.loyalty]);
+  return useQuery({
+    queryKey: queryKeys.loyalty,
+    queryFn: () => getApi().getLoyalty(),
+    enabled: Boolean(session),
+  });
+}
+
+export function useBudget() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.budget,
+    queryFn: () => getApi().getBudget(),
+    enabled: Boolean(session),
+  });
+}
+
+export function useNotifications() {
+  const { session } = useAuth();
+  useOwnRowLive("notifications", [queryKeys.notifications]);
+  return useQuery({
+    queryKey: queryKeys.notifications,
+    queryFn: () => getApi().listNotifications(),
+    enabled: Boolean(session),
+  });
+}
+
+export function useSpecials(outletId: string | undefined) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!outletId) return;
+    return subscribeToTable(getSupabase(), {
+      table: "daily_specials",
+      filter: `outlet_id=eq.${outletId}`,
+      onChange: () => {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.specials(outletId) });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.menuAll(outletId) });
+      },
+    });
+  }, [outletId, queryClient]);
+  return useQuery({
+    queryKey: queryKeys.specials(outletId ?? ""),
+    queryFn: () => getApi().listSpecials(outletId as string),
+    enabled: Boolean(outletId),
+  });
+}
+
+/** Polls with live counts: any poll or option change at the outlet refetches. */
+export function usePolls(outletId: string | undefined) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!outletId) return;
+    const refresh = () =>
+      void queryClient.invalidateQueries({ queryKey: queryKeys.polls(outletId) });
+    const offPolls = subscribeToTable(getSupabase(), {
+      table: "polls",
+      filter: `outlet_id=eq.${outletId}`,
+      onChange: refresh,
+    });
+    // poll_options has no outlet column; vote counts are public, so refresh on any change.
+    const offOptions = subscribeToTable(getSupabase(), {
+      table: "poll_options",
+      onChange: refresh,
+    });
+    return () => {
+      offPolls();
+      offOptions();
+    };
+  }, [outletId, queryClient]);
+  return useQuery({
+    queryKey: queryKeys.polls(outletId ?? ""),
+    queryFn: () => getApi().listPolls(outletId as string),
+    enabled: Boolean(outletId),
+  });
+}
+
+export function useMyVotes(outletId: string | undefined) {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.myVotes(outletId ?? ""),
+    queryFn: () => getApi().myVotes(outletId as string),
+    enabled: Boolean(outletId && session),
+  });
+}
+
+export function usePopular() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.popular,
+    queryFn: () => getApi().popular(),
+    enabled: Boolean(session),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** One group order, live: the session's version changes on every tray, member or share change. */
+export function useGroup(groupId: string) {
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
+  const [live, setLive] = useState<RealtimeStatus>("connecting");
+  useEffect(() => {
+    if (!session) return;
+    const refresh = () =>
+      void queryClient.invalidateQueries({ queryKey: queryKeys.group(groupId) });
+    return subscribeToTable(getSupabase(), {
+      table: "group_sessions",
+      filter: `id=eq.${groupId}`,
+      onChange: refresh,
+      onResync: refresh,
+      onStatus: setLive,
+    });
+  }, [groupId, session, queryClient]);
+  return {
+    ...useQuery({
+      queryKey: queryKeys.group(groupId),
+      queryFn: () => getApi().getGroup(groupId),
+      enabled: Boolean(session),
+    }),
+    live,
+  };
+}

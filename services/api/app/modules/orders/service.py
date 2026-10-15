@@ -36,7 +36,7 @@ _ORDER_SELECT = """
            o.item_count, o.reservation_expires_at, o.placed_at, o.confirmed_at, o.preparing_at,
            o.ready_at, o.completed_at, o.cancelled_at, o.cancel_reason,
            o.cancelled_by::text as cancelled_by, o.version, o.created_at, o.updated_at,
-           o.source_deal_id, o.no_show_at,
+           o.source_deal_id, o.group_session_id, o.no_show_at,
            case when o.status = 'ready_for_pickup'
                 then private.pickup_deadline(o.ready_at, s.ends_at, ot.no_show_grace_minutes)
            end as pickup_deadline,

@@ -11,7 +11,14 @@ export interface TableSubscription {
     | "inventory"
     | "pickup_slots"
     | "refund_requests"
-    | "surplus_deals";
+    | "surplus_deals"
+    | "wallet_accounts"
+    | "loyalty_accounts"
+    | "notifications"
+    | "daily_specials"
+    | "polls"
+    | "poll_options"
+    | "group_sessions";
   /** PostgREST-style filter, e.g. `id=eq.<uuid>`. */
   filter?: string;
   onChange: (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void;

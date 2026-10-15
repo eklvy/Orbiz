@@ -17,6 +17,10 @@ export const staffQueryKeys = {
   slots: (outletId: string, date: string) => ["manager-slots", outletId, date] as const,
   staff: (outletId: string) => ["outlet-staff", outletId] as const,
   refunds: (outletId: string) => ["refund-desk", outletId] as const,
+  specials: (outletId: string) => ["manager-specials", outletId] as const,
+  polls: (outletId: string) => ["manager-polls", outletId] as const,
+  reviews: (outletId: string) => ["manager-reviews", outletId] as const,
+  parties: (outletId: string) => ["manager-parties", outletId] as const,
 };
 
 /**
@@ -191,6 +195,68 @@ export function createStaffApi(client: ApiClient) {
           body,
         }),
       ),
+    // Manager: specials, polls, reviews, party bookings (Phase 5)
+    specials: (outletId: string) =>
+      unwrap(client.GET("/api/v1/manage/outlets/{outlet_id}/specials", outlet(outletId))),
+    saveSpecial: (outletId: string, body: Schemas["SpecialInput"]) =>
+      unwrap(
+        client.PUT("/api/v1/manage/outlets/{outlet_id}/specials", { ...outlet(outletId), body }),
+      ),
+    deleteSpecial: (specialId: string) =>
+      unwrap(
+        client.DELETE("/api/v1/manage/specials/{special_id}", {
+          params: { path: { special_id: specialId } },
+        }),
+      ),
+    polls: (outletId: string) =>
+      unwrap(client.GET("/api/v1/outlets/{outlet_id}/polls", outlet(outletId))),
+    createPoll: (outletId: string, body: Schemas["PollInput"]) =>
+      unwrap(
+        client.POST("/api/v1/manage/outlets/{outlet_id}/polls", { ...outlet(outletId), body }),
+      ),
+    closePoll: (pollId: string) =>
+      unwrap(
+        client.POST("/api/v1/manage/polls/{poll_id}/close", {
+          params: { path: { poll_id: pollId } },
+        }),
+      ),
+    publishPoll: (pollId: string, optionId?: string) =>
+      unwrap(
+        client.POST("/api/v1/manage/polls/{poll_id}/publish", {
+          params: { path: { poll_id: pollId } },
+          body: optionId ? { option_id: optionId } : {},
+        }),
+      ),
+    reviews: (outletId: string, needsReply = false) =>
+      unwrap(
+        client.GET("/api/v1/outlets/{outlet_id}/reviews", {
+          params: { path: { outlet_id: outletId }, query: { needs_reply: needsReply, limit: 100 } },
+        }),
+      ),
+    replyToReview: (reviewId: string, reply: string) =>
+      unwrap(
+        client.POST("/api/v1/staff/reviews/{review_id}/reply", {
+          params: { path: { review_id: reviewId } },
+          body: { reply },
+        }),
+      ),
+    ratings: () => unwrap(client.GET("/api/v1/ratings")),
+    parties: (outletId: string) =>
+      unwrap(client.GET("/api/v1/manage/outlets/{outlet_id}/parties", outlet(outletId))),
+    decideParty: (bookingId: string, accept: boolean, note?: string) =>
+      unwrap(
+        client.POST("/api/v1/manage/parties/{booking_id}/decision", {
+          params: { path: { booking_id: bookingId } },
+          body: { accept, ...(note ? { note } : {}) },
+        }),
+      ),
+    fulfilParty: (bookingId: string) =>
+      unwrap(
+        client.POST("/api/v1/manage/parties/{booking_id}/fulfil", {
+          params: { path: { booking_id: bookingId } },
+        }),
+      ),
+
     approveAllRefunds: (outletId: string) =>
       unwrap(
         client.POST("/api/v1/manage/outlets/{outlet_id}/refunds/approve-all", outlet(outletId)),

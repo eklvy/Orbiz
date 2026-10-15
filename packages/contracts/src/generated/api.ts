@@ -2567,6 +2567,8 @@ export interface components {
             created_at: string;
             /** Discount Paise */
             discount_paise: number;
+            /** Group Session Id */
+            group_session_id: string | null;
             /**
              * Id
              * Format: uuid
@@ -2666,6 +2668,8 @@ export interface components {
             discount_paise: number;
             /** Events */
             events: components["schemas"]["OrderEvent"][];
+            /** Group Session Id */
+            group_session_id: string | null;
             /**
              * Id
              * Format: uuid
@@ -3716,6 +3720,8 @@ export interface components {
             deal_source_token: string | null;
             /** Discount Paise */
             discount_paise: number;
+            /** Group Session Id */
+            group_session_id: string | null;
             /**
              * Id
              * Format: uuid

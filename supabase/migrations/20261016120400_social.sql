@@ -889,6 +889,118 @@ begin
 end;
 $$;
 
+
+-- A group order is paid share by share (app.pay_group_share): the single-order payment paths and
+-- vouchers refuse it, so the host can't pay the whole tray while members' shares stay open.
+create or replace function app.pay_order_with_wallet(p_order_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_order public.orders;
+  v_entry bigint;
+begin
+  if v_user is null then
+    perform private.fail(401, 'unauthenticated', 'Sign in first');
+  end if;
+  select * into v_order from public.orders where id = p_order_id for update;
+  if not found or v_order.user_id <> v_user then
+    perform private.fail(404, 'order_not_found', 'Order not found');
+  end if;
+  if v_order.payment_status = 'paid' and v_order.payment_reference like 'wallet:%' then
+    return; -- already paid from the wallet (retry)
+  end if;
+  if v_order.group_session_id is not null then
+    perform private.fail(409, 'group_order', 'Pay your share from the group order instead');
+  end if;
+  if v_order.status <> 'payment_pending' then
+    perform private.fail(409, 'order_not_pending', 'Order is no longer awaiting payment');
+  end if;
+  if v_order.reservation_expires_at <= now() then
+    perform private.fail(409, 'reservation_expired', 'The hold on this order has expired');
+  end if;
+  v_entry := private.wallet_post(v_user, 'order_payment', -v_order.total_paise, p_order_id, null, null,
+                                 'Order payment');
+  perform private.mark_order_paid(p_order_id, 'wallet:' || v_entry);
+end;
+$$;
+
+create or replace function app.order_payment_amount(p_order_id uuid)
+returns integer
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_order public.orders;
+begin
+  select * into v_order from public.orders where id = p_order_id;
+  if not found or v_order.user_id is distinct from auth.uid() then
+    perform private.fail(404, 'order_not_found', 'Order not found');
+  end if;
+  if v_order.group_session_id is not null then
+    perform private.fail(409, 'group_order', 'Pay your share from the group order instead');
+  end if;
+  if v_order.status <> 'payment_pending' then
+    perform private.fail(409, 'order_not_pending', 'Order is no longer awaiting payment');
+  end if;
+  if v_order.reservation_expires_at <= now() then
+    perform private.fail(409, 'reservation_expired', 'The hold on this order has expired');
+  end if;
+  return v_order.total_paise;
+end;
+$$;
+
+create or replace function app.apply_voucher(p_order_id uuid, p_code text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_order public.orders;
+  v_voucher public.vouchers;
+begin
+  if v_user is null then
+    perform private.fail(401, 'unauthenticated', 'Sign in first');
+  end if;
+  select * into v_order from public.orders where id = p_order_id for update;
+  if not found or v_order.user_id <> v_user then
+    perform private.fail(404, 'order_not_found', 'Order not found');
+  end if;
+  if v_order.group_session_id is not null then
+    perform private.fail(409, 'group_order', 'Pay your share from the group order instead');
+  end if;
+  if v_order.status <> 'payment_pending' then
+    perform private.fail(409, 'order_not_pending', 'Vouchers can only be added before paying');
+  end if;
+  if v_order.voucher_id is not null then
+    perform private.fail(409, 'voucher_already_applied', 'This order already has a voucher');
+  end if;
+  select * into v_voucher from public.vouchers
+  where code = upper(btrim(coalesce(p_code, ''))) and user_id = v_user for update;
+  if not found then
+    perform private.fail(404, 'voucher_not_found', 'Voucher not found');
+  end if;
+  if v_voucher.status <> 'available' or v_voucher.expires_at <= now() then
+    perform private.fail(409, 'voucher_unavailable', 'This voucher has been used or has expired');
+  end if;
+  if v_order.subtotal_paise <= v_voucher.value_paise then
+    perform private.fail(409, 'order_too_small', 'The order must cost more than the voucher');
+  end if;
+  update public.vouchers set status = 'applied', order_id = p_order_id where id = v_voucher.id;
+  update public.orders set
+    voucher_id = v_voucher.id, discount_paise = v_voucher.value_paise,
+    total_paise = subtotal_paise - v_voucher.value_paise, version = version + 1
+  where id = p_order_id;
+end;
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Names for people who share something (profiles are otherwise private): only full names, only
 -- to members of the same group / split, or to the outlet's managers for party bookings.

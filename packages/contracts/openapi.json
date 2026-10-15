@@ -2363,6 +2363,18 @@
             "title": "Discount Paise",
             "type": "integer"
           },
+          "group_session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Session Id"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -2575,6 +2587,7 @@
           "outlet",
           "pickup_slot",
           "source_deal_id",
+          "group_session_id",
           "status",
           "payment_status",
           "refund_status",
@@ -2717,6 +2730,18 @@
             },
             "title": "Events",
             "type": "array"
+          },
+          "group_session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Session Id"
           },
           "id": {
             "format": "uuid",
@@ -2940,6 +2965,7 @@
           "outlet",
           "pickup_slot",
           "source_deal_id",
+          "group_session_id",
           "status",
           "payment_status",
           "refund_status",
@@ -5635,6 +5661,18 @@
             "title": "Discount Paise",
             "type": "integer"
           },
+          "group_session_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Group Session Id"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -5847,6 +5885,7 @@
           "outlet",
           "pickup_slot",
           "source_deal_id",
+          "group_session_id",
           "status",
           "payment_status",
           "refund_status",
