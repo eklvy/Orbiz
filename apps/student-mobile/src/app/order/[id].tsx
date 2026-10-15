@@ -10,14 +10,9 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
-import {
-  Countdown,
-  LiveIndicator,
-  OrderStatusBadge,
-  PickupPass,
-  Timeline,
-} from "@/components/status";
+import { LiveIndicator, OrderStatusBadge, PickupPass, Timeline } from "@/components/status";
 import { RefundRequestCard } from "@/components/deals";
+import { ReviewCard, WalletPayCard } from "@/components/money";
 import { Button, Card, ErrorBox, Loading, Muted, Title, makeStyles } from "@/components/ui";
 import { api } from "@/lib/api";
 import { confirm } from "@/lib/confirm";
@@ -72,30 +67,8 @@ export default function OrderScreen() {
         Order status: {orderStatusLabel(o.status)}
       </Text>
 
-      {o.status === "payment_pending" && o.reservation_expires_at && (
-        <View
-          style={{
-            backgroundColor: t.warnSoft,
-            borderRadius: radius.md,
-            padding: space.lg,
-            gap: space.sm,
-          }}
-        >
-          <Text style={{ color: t.warn, fontWeight: "700" }}>
-            Awaiting payment — held for{" "}
-            <Countdown until={o.reservation_expires_at} onElapsed={() => void order.refetch()} />
-          </Text>
-          <Text style={{ color: t.warn }}>
-            Online payment isn&apos;t available in this version yet. The order won&apos;t reach the
-            kitchen until it&apos;s paid, and the hold is released automatically when the timer
-            ends.
-          </Text>
-          <Button
-            label={`Pay ${formatPaise(o.total_paise)} (coming soon)`}
-            disabled
-            onPress={() => undefined}
-          />
-        </View>
+      {o.status === "payment_pending" && (
+        <WalletPayCard order={o} onExpired={() => void order.refetch()} />
       )}
 
       <PickupPass order={o} />
@@ -182,6 +155,7 @@ export default function OrderScreen() {
         </View>
       </Card>
 
+      <ReviewCard order={o} />
       <RefundRequestCard order={o} />
 
       {canCancel && (

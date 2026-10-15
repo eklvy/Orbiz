@@ -173,3 +173,36 @@ export async function makeNoShow(orderId: string): Promise<void> {
     await client.end();
   }
 }
+
+/** Runs one statement as the server's system role (as pg_cron and the payment service do). */
+export async function asSystem(query: string, params: unknown[] = []): Promise<void> {
+  const client = new Client({ connectionString: process.env.E2E_DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query("begin");
+    await client.query("select set_config('role', 'service_role', true)");
+    await client.query(query, params);
+    await client.query("commit");
+  } finally {
+    await client.end();
+  }
+}
+
+/**
+ * Stand-in for a verified Razorpay top-up: registers and captures a payment through the same
+ * system-only functions the webhook uses. Test-only; no real money and no Razorpay call.
+ */
+export async function fundWalletStandIn(userId: string, paise: number): Promise<void> {
+  const ref = `e2e-topup-${randomUUID()}`;
+  await asSystem("select app.register_payment($1, 'wallet_topup', null, $2, $3)", [
+    userId,
+    paise,
+    ref,
+  ]);
+  await asSystem("select app.capture_payment($1, $2, $3)", [ref, `pay-${ref}`, paise]);
+}
+
+/** Test-only: award loyalty points directly (as a review would), so a voucher can be redeemed. */
+export async function awardPointsStandIn(userId: string, points: number): Promise<void> {
+  await sql("select private.loyalty_post($1, $2, 'review')", [userId, points]);
+}

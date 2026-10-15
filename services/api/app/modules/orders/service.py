@@ -31,17 +31,20 @@ PickupResult = Literal["completed", "invalid_code", "locked"]
 
 _ORDER_SELECT = """
     select o.id, o.user_id, o.status::text as status, o.payment_status::text as payment_status,
-           o.refund_status::text as refund_status, o.token_label, o.subtotal_paise, o.total_paise,
+           o.refund_status::text as refund_status, o.token_label, o.subtotal_paise,
+           o.discount_paise, o.total_paise,
            o.item_count, o.reservation_expires_at, o.placed_at, o.confirmed_at, o.preparing_at,
            o.ready_at, o.completed_at, o.cancelled_at, o.cancel_reason,
            o.cancelled_by::text as cancelled_by, o.version, o.created_at, o.updated_at,
-           o.source_deal_id, o.no_show_at,
+           o.source_deal_id, o.group_session_id, o.no_show_at,
            case when o.status = 'ready_for_pickup'
                 then private.pickup_deadline(o.ready_at, s.ends_at, ot.no_show_grace_minutes)
            end as pickup_deadline,
            ot.id as outlet_id, ot.slug as outlet_slug, ot.name as outlet_name,
            s.id as slot_id, s.starts_at as slot_starts_at, s.ends_at as slot_ends_at,
-           pc.code as pickup_code
+           pc.code as pickup_code,
+           (select sum(l.points)::int from public.loyalty_ledger l
+             where l.order_id = o.id and l.user_id = o.user_id) as loyalty_points
     from public.orders o
     join public.outlets ot on ot.id = o.outlet_id
     left join public.pickup_slots s on s.id = o.pickup_slot_id

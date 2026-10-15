@@ -64,8 +64,37 @@ The staff queue returns `StaffOrder`: an order plus `customer_name` and, for dea
 (never the pickup code). Every order carries `pickup_deadline` while `ready_for_pickup`, `no_show_at`, and
 `source_deal_id`; `pickup_slot` is `null` for deal orders. `GET /me` memberships include `outlet_timezone`.
 
-Payment confirmation has **no endpoint**. Only trusted server code can mark an order paid
-(`app.confirm_order_payment`, `service_role`). Phase 5 calls it after verifying the payment with Razorpay.
+### Phase 5: payments, wallet, rewards, engagement, social
+
+| Method & path | Who | Purpose |
+|---|---|---|
+| `GET /payments/config` | public | Whether Razorpay is set up on this server, and its public key id |
+| `POST /payments/razorpay/checkout` | signed in | Create a Razorpay order for an unpaid order (amount read by the server) or a wallet top-up (₹50–₹5,000). `503 payments_unavailable` when Razorpay isn't configured |
+| `POST /payments/razorpay/verify` | owner | Checkout callback: HMAC signature check, then capture (pays the order or credits the wallet). Idempotent |
+| `POST /payments/razorpay/webhook` | Razorpay | Signed (`X-Razorpay-Signature`), de-duplicated by event id; same capture path |
+| `GET /wallet` | signed in | Balance and ledger (cursor) |
+| `POST /orders/{id}/pay-with-wallet` | owner | Debit and mark paid in one transaction; retry-safe. Not for group orders |
+| `POST /orders/{id}/voucher` | owner | Apply your voucher to your unpaid order (server lowers the total) |
+| `GET /loyalty`, `POST /loyalty/vouchers` | signed in | Points, tier, ledger, vouchers and rules (D-15); spend 100 points on a ₹10 voucher |
+| `GET/PUT/DELETE /budget` | signed in | Monthly (and optional daily) limit; spend this month/today and by category |
+| `GET /notifications`, `POST /notifications/read`, `POST/DELETE /notifications/push-tokens` | signed in | Notification Center (written only by database triggers), read state, Expo device tokens |
+| `GET /outlets/{id}/specials` | public | Today's and upcoming specials with server prices and portions left |
+| `GET /outlets/{id}/polls`, `GET /outlets/{id}/polls/my-votes`, `POST /polls/{id}/vote` | public / signed in | Live poll counts; one vote per student |
+| `GET /outlets/{id}/reviews`, `GET /ratings` | public | Anonymous reviews (`needs_reply` filter) and the outlet leaderboard |
+| `POST/GET /orders/{id}/review` | owner | Rate a collected order within 7 days (4 dimensions, +15 points) |
+| `GET /popular` | signed in | Items at least 5 students ordered in 14 days (your department first, else campus) |
+| `GET/POST /groups`, `POST /groups/join`, `GET /groups/{id}`, `PUT /groups/{id}/items`, `PUT /groups/{id}/split`, `POST /groups/{id}/checkout`, `POST /groups/{id}/pay`, `POST /groups/{id}/leave` | members | Group orders: shared tray, split by dish / equally / %, host checks out, each member pays their share from the wallet |
+| `GET/POST /parties`, `POST /parties/{id}/pay`, `POST /parties/{id}/cancel` | signed in | Party (catering) bookings |
+| `GET/POST /splits`, `POST /splits/{id}/settle`, `POST /splits/{id}/cancel` | participants | Bill splits settled by wallet transfer |
+| `POST /staff/reviews/{id}/reply` | outlet staff | Reply as the outlet |
+| `GET/PUT /manage/outlets/{id}/specials`, `DELETE /manage/specials/{id}` | manager | Specials (a new one for today notifies recent customers) |
+| `POST /manage/outlets/{id}/polls`, `POST /manage/polls/{id}/close`, `POST /manage/polls/{id}/publish` | manager | Polls; publish a winner (default most votes) as the poll's special |
+| `GET /manage/outlets/{id}/parties`, `POST /manage/parties/{id}/decision`, `POST /manage/parties/{id}/fulfil` | manager | Party bookings |
+
+Payment confirmation by a client is impossible: only trusted server code (`app.capture_payment` after a verified
+signature, `app.confirm_order_payment` for tests) or the wallet/group functions can mark an order paid, all through
+`private.mark_order_paid`. Orders also carry `discount_paise`, `loyalty_points` (owner only) and `group_session_id`;
+the menu and cart carry today's `special` price.
 
 ## Order lifecycle
 
@@ -107,6 +136,15 @@ settled in Phase 5). No transition is reversible.
 | `duplicate_name` / `invalid_price` / `category_not_found` / `invalid_hours` / `overlapping_hours` / `invalid_setting` | 409 / 422 | Menu, hours and settings validation |
 | `capacity_below_reserved` / `slot_not_found` | 409 / 404 | Slot edits |
 | `user_not_found` / `already_staff` / `staff_not_found` | 404 / 409 / 404 | Staff management |
+| `payments_unavailable` / `invalid_signature` / `payment_not_found` | 503 / 422 / 404 | Online payment not set up / bad Razorpay signature / unknown payment |
+| `insufficient_wallet_balance` / `invalid_topup_amount` / `wallet_limit` | 409 / 422 / 409 | Wallet |
+| `not_enough_points` / `voucher_not_found` / `voucher_unavailable` / `voucher_already_applied` / `order_too_small` | 409 / 404 / 409 | Loyalty and vouchers |
+| `special_portions_left` / `portions_below_sold` / `special_has_sales` | 409 | Specials |
+| `poll_closed` / `already_voted` / `poll_published` | 409 | Polls |
+| `review_not_allowed` / `review_window_closed` / `already_reviewed` | 409 | Reviews |
+| `group_not_found` / `group_locked` / `group_full` / `group_empty` / `group_order` / `group_not_payable` | 404 / 409 / 422 | Group orders (`group_order`: pay the share instead) |
+| `party_not_found` / `party_not_payable` / `party_too_late` / `invalid_event_time` | 404 / 409 / 422 | Party bookings |
+| `participant_not_found` / `split_cancelled` | 422 / 409 | Bill splits |
 
 ## Realtime
 
@@ -118,6 +156,12 @@ Subscribe with Supabase Realtime (`postgres_changes`) using the user's access to
 | `outlets`, `menu_items`, `inventory`, `pickup_slots` | Anyone who can see the row (public catalogue) |
 | `surplus_deals` | On-sale deals: anyone; all deals: the outlet's staff; a buyer: deals they hold or bought |
 | `refund_requests` | The student who asked; the outlet's managers |
+| `wallet_accounts`, `loyalty_accounts`, `notifications` | The owner only |
+| `daily_specials`, `polls`, `poll_options` | Anyone (vote counts only, never who voted) |
+| `group_sessions` | Group members (the row's `version` changes with every tray, member or share change) |
+
+Not published: ledgers, payments, `group_items` (deletes would bypass RLS) and `reviews` (whole rows would expose
+the reviewer).
 
 Not published: carts (Realtime doesn't filter DELETE events by RLS), pickup codes, and the stock ledger. Clients must
 refetch authoritative state on (re)connect and use `orders.version` to ignore stale or duplicate events.

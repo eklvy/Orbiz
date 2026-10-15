@@ -139,16 +139,37 @@ async def get_menu(
         f"""
         select m.id, m.category_id, m.name, m.description, m.price_paise, m.diet::text as diet,
                m.calories_kcal, m.protein_g, m.prep_minutes, m.stock_status::text as stock_status,
-               case when m.track_quantity then i.quantity_available end as quantity_available
+               case when m.track_quantity then i.quantity_available end as quantity_available,
+               sp.special_id, sp.unit_price_paise as special_price_paise,
+               sp.discount_percent as special_discount_percent,
+               sp.portions_left as special_portions_left
         from public.menu_items m
         left join public.inventory i on i.menu_item_id = m.id
+        left join lateral app.item_special(m.id) sp on true
         left join public.menu_categories c on c.id = m.category_id
         where {" and ".join(filters)}
         order by c.sort_order nulls last, m.sort_order, m.name
         """,  # noqa: S608 — filters are fixed fragments; values are bound parameters
         params,
     )
-    items = [MenuItem.model_validate(row) for row in await cur.fetchall()]
+    items = [
+        MenuItem.model_validate(
+            {
+                **row,
+                "special": (
+                    {
+                        "special_id": row["special_id"],
+                        "unit_price_paise": row["special_price_paise"],
+                        "discount_percent": row["special_discount_percent"],
+                        "portions_left": row["special_portions_left"],
+                    }
+                    if row["special_id"]
+                    else None
+                ),
+            }
+        )
+        for row in await cur.fetchall()
+    ]
 
     by_category: dict[UUID, list[MenuItem]] = {c["id"]: [] for c in categories}
     uncategorized: list[MenuItem] = []

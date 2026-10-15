@@ -16,6 +16,7 @@ import {
   Title,
   makeStyles,
 } from "@/components/ui";
+import { MoneySummary } from "@/components/money";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useMe } from "@/lib/hooks";
@@ -88,6 +89,12 @@ export default function ProfileScreen() {
     <ScrollView style={s.screen} contentContainerStyle={s.content}>
       <Title>Profile</Title>
       <Muted>{me.data.email}</Muted>
+      <MoneySummary />
+      <Button
+        label="Notifications"
+        variant="secondary"
+        onPress={() => router.push("/notifications")}
+      />
       <Card>
         <Text style={{ color: t.muted }}>
           Account type:{" "}

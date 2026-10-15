@@ -93,6 +93,7 @@ pnpm --filter @campuscart/student-mobile export:native         # iOS + Android b
 - Dashboards share React code via `packages/staff-web` (React 19.3, same as the Next apps); its Tailwind classes are picked up through `@source` in each app's `globals.css`.
 - Client apps: shared, framework-free logic goes in `packages/client` (no React there, because web and Expo use different React versions). UI must never compute prices, totals, availability or allowed transitions; read them from the API (`canTransition` uses `GET /orders/transitions`).
 - Every user-visible flow added to a client gets a Playwright test against the real backend; keep the axe and no-horizontal-scroll checks green.
+- Money: only `private.mark_order_paid` marks an order paid; wallets and points change only through `private.wallet_post` / `private.loyalty_post` (append-only ledgers). Tests fund wallets through `app.register_payment` + `app.capture_payment` as the system role (the webhook path), labelled as a stand-in.
 - Tests that need a "paid" order use the labelled stand-in `confirm_payment()` / `tests.pay()`, which calls the same system-only function the Phase 5 webhook will.
 - Tests live next to the code (`*.test.ts`) or in `services/api/tests/`. Every authorization rule gets a negative test.
 - pnpm blocks dependency install scripts. Allow one only via `allowBuilds` in `pnpm-workspace.yaml`, with a comment saying why.

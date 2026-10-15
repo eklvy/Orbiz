@@ -61,7 +61,22 @@ export function MenuItemCard({
         {item.description && (
           <p className="mt-0.5 line-clamp-2 text-sm text-muted">{item.description}</p>
         )}
-        <p className="mt-2 font-semibold">{formatPaise(item.price_paise)}</p>
+        {item.special ? (
+          <p className="mt-2" data-testid="special-price">
+            <span className="font-semibold text-accent">
+              {formatPaise(item.special.unit_price_paise)}
+            </span>{" "}
+            <s className="text-sm text-muted">{formatPaise(item.price_paise)}</s>{" "}
+            <span className="text-xs font-semibold text-accent">
+              Today&apos;s special · {item.special.discount_percent}% off ·{" "}
+              {item.special.portions_left > 0
+                ? `${item.special.portions_left} left`
+                : "special sold out"}
+            </span>
+          </p>
+        ) : (
+          <p className="mt-2 font-semibold">{formatPaise(item.price_paise)}</p>
+        )}
       </div>
       <div className="flex shrink-0 flex-col items-end justify-end gap-2">
         {quantity > 0 ? (

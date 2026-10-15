@@ -207,9 +207,25 @@ export default function OutletScreen() {
                   }}
                 >
                   <View>
-                    <Text style={{ color: t.ink, fontWeight: "700" }}>
-                      {formatPaise(item.price_paise)}
-                    </Text>
+                    {item.special ? (
+                      <Text style={{ color: t.accent, fontWeight: "700" }}>
+                        {formatPaise(item.special.unit_price_paise)}{" "}
+                        <Text
+                          style={{
+                            color: t.muted,
+                            textDecorationLine: "line-through",
+                            fontWeight: "400",
+                          }}
+                        >
+                          {formatPaise(item.price_paise)}
+                        </Text>
+                        {` · special, ${item.special.portions_left} left`}
+                      </Text>
+                    ) : (
+                      <Text style={{ color: t.ink, fontWeight: "700" }}>
+                        {formatPaise(item.price_paise)}
+                      </Text>
+                    )}
                     <Text style={{ color: t.muted, fontSize: 12 }}>
                       {item.prep_minutes} min
                       {item.calories_kcal != null ? ` · ${item.calories_kcal} kcal` : ""}

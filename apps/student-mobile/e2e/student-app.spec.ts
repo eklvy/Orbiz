@@ -193,3 +193,40 @@ test("student app: an uncollected order becomes a deal another student buys", as
     await buyerContext.close();
   }
 });
+
+test("student app: pay an order from the wallet", async ({ page }) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  const email = await createStudent();
+  const [user] = await sql("select id from auth.users where email = $1", [email]);
+  const userId = (user as { id: string }).id;
+  // Stand-in for a verified top-up (same system-only functions as the Razorpay webhook); test-only.
+  const client = new Client({ connectionString: process.env.E2E_DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query("begin");
+    await client.query("select set_config('role', 'service_role', true)");
+    await client.query("select app.register_payment($1, 'wallet_topup', null, 20000, $2)", [
+      userId,
+      `app-topup-${userId}`,
+    ]);
+    await client.query("select app.capture_payment($1, $2, 20000)", [
+      `app-topup-${userId}`,
+      `pay-${userId}`,
+    ]);
+    await client.query("commit");
+  } finally {
+    await client.end();
+  }
+
+  await signInInApp(page, email);
+  await expect(page.getByTestId("profile-wallet")).toHaveText("₹200");
+  await page.getByRole("tab", { name: /Outlets/ }).click();
+  await page.getByRole("link", { name: /Dev Sample North Café/ }).click();
+  await page.getByRole("button", { name: "Add Egg Roll" }).click();
+  await page.getByRole("button", { name: "Choose pickup time" }).click();
+  await page.getByRole("radio", { disabled: false }).first().click();
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page.getByTestId("wallet-balance")).toContainText("₹200");
+  await page.getByRole("button", { name: "Pay ₹55 from wallet" }).click();
+  await expect(page.getByTestId("token")).toHaveText(/^N-\d+$/);
+});

@@ -38,7 +38,8 @@ select tests.kitchen_ready(id) from t_ids;
 
 -- Before the deadline nothing happens -----------------------------------------------------------
 select is(app.process_no_shows(), 0, 'orders still inside their pickup window are left alone');
-select is((select count(*)::int from public.orders where status = 'ready_for_pickup'), 5, 'all five stay ready');
+select is((select count(*)::int from public.orders where status = 'ready_for_pickup'
+  and outlet_id = '20000000-0000-4000-b000-00000000000a'), 5, 'all five stay ready');
 
 -- Deadline = later of (ready, slot end) + grace. Ready long ago but slot not over yet → not due.
 update public.orders set ready_at = now() - interval '2 hours' where id = (select id from t_ids where name = 'o1');

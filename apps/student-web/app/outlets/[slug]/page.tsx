@@ -10,12 +10,13 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { DealsSection } from "@/components/deals-section";
+import { PollsSection } from "@/components/polls-section";
 import { ItemDialog } from "@/components/item-dialog";
 import { MenuItemCard } from "@/components/menu-item-card";
 import { OutletStatus } from "@/components/outlet-card";
 import { EmptyState, ErrorState, InlineError, LoadingList, Skeleton } from "@/components/ui/states";
 import { useAuth } from "@/lib/auth";
-import { useCart, useMenu, useOutlet, useSetCartItem } from "@/lib/hooks";
+import { useCart, useMenu, useOutlet, useSetCartItem, useSpecials } from "@/lib/hooks";
 
 const DIETS: { value: MenuFilters["diet"] | undefined; label: string }[] = [
   { value: undefined, label: "All" },
@@ -54,6 +55,7 @@ export default function OutletPage() {
     [debouncedSearch, diet, maxPrice, availableOnly],
   );
   const menu = useMenu(outlet.data?.id, filters);
+  useSpecials(outlet.data?.id); // keeps special prices and portions on the menu live
   const cart = useCart();
   const setItem = useSetCartItem();
   const [pendingItem, setPendingItem] = useState<string | null>(null);
@@ -110,7 +112,10 @@ export default function OutletPage() {
           <h1 className="text-3xl font-bold tracking-tight">{o.name}</h1>
           <p className="text-muted">
             {o.location ?? ""} · ~{o.queue.estimated_wait_minutes} min wait ·{" "}
-            {o.queue.active_orders} in queue
+            {o.queue.active_orders} in queue ·{" "}
+            <Link href={`/ratings#${o.id}`} className="underline hover:text-ink">
+              ratings
+            </Link>
           </p>
         </div>
         <OutletStatus outlet={o} />
@@ -124,6 +129,7 @@ export default function OutletPage() {
       )}
 
       <DealsSection outletId={o.id} slug={slug} timeZone={o.timezone} />
+      <PollsSection outletId={o.id} slug={slug} />
 
       <section
         aria-label="Filters"

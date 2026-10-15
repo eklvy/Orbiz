@@ -168,8 +168,9 @@ test("refunds desk: approve and decline student requests", async ({ page }) => {
 
   await requestA.getByRole("button", { name: /^Approve ₹55 refund$/ }).click();
   await expect(requestA).toHaveCount(0);
-  expect((await api<{ refund_status: string }>(first.email, `/orders/${a.id}`)).refund_status).toBe(
-    "required",
+  // Owed, or already paid into the wallet by the minute payout job (D-20).
+  expect(["required", "refunded"]).toContain(
+    (await api<{ refund_status: string }>(first.email, `/orders/${a.id}`)).refund_status,
   );
 
   await requestB.getByRole("button", { name: "Decline" }).click();
@@ -268,6 +269,9 @@ test("every section is accessible and fits the screen", async ({ page }) => {
     ["Kitchen", "/kitchen", /^Kitchen queue$/],
     ["Menu & stock", "/menu", /^Menu & stock$/],
     ["Refunds", "/refunds", /^Refunds & cancellations$/],
+    ["Specials & polls", "/specials", /^Specials & polls$/],
+    ["Reviews", "/reviews", /^Reviews$/],
+    ["Party bookings", "/parties", /^Party bookings$/],
     ["Slots & hours", "/slots", /^Slots & hours$/],
     ["Staff", "/staff", /^Staff$/],
     ["Settings", "/settings", /^Settings$/],
@@ -290,4 +294,79 @@ test("every section is accessible and fits the screen", async ({ page }) => {
     );
     expect(overflow, `${section} scrolls sideways`).toBeLessThanOrEqual(0);
   }
+});
+
+test("specials, polls, reviews and party bookings", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "changes shared outlet state");
+  const southItems = {
+    rajma: "00000000-0000-4000-d000-000000000005",
+    thali: "00000000-0000-4000-d000-000000000006",
+  };
+  await signInStaff(page, SOUTH_MANAGER);
+  await openSection(page, "Specials & polls");
+
+  // A special for a later date (so today's prices for other tests are untouched), then removed.
+  const special = page.getByRole("form", { name: "Set a special" });
+  await special.getByLabel("Dish").selectOption({ label: "Veg Thali (₹120)" });
+  const later = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
+    new Date(Date.now() + 5 * 86_400_000),
+  );
+  await special.getByLabel("Date").fill(later);
+  await special.getByLabel("Discount (%)").fill("25");
+  await special.getByLabel("Portions").fill("40");
+  await special.getByRole("button", { name: "Save special" }).click();
+  const row = page.getByTestId("manager-special").filter({ hasText: later });
+  await expect(row).toContainText("25% off → ₹90");
+  await row.getByRole("button", { name: "Remove" }).click();
+  await expect(row).toHaveCount(0);
+
+  const pollForm = page.getByRole("form", { name: "Start a poll" });
+  const question = `E2E poll ${Date.now()}`;
+  await pollForm.getByLabel("Question").fill(question);
+  await pollForm.getByLabel("Rajma Chawal").check();
+  await pollForm.getByLabel("Veg Thali").check();
+  await pollForm.getByRole("button", { name: "Start poll" }).click();
+  const poll = page.getByTestId("manager-poll").filter({ hasText: question });
+  await expect(poll).toContainText("0 votes");
+  const student = await createStudent("Poll Voter");
+  const polls = await api<
+    { id: string; question: string; options: { id: string; menu_item_id: string }[] }[]
+  >(student.email, "/outlets/00000000-0000-4000-b000-000000000002/polls");
+  const mine = polls.find((p) => p.question === question);
+  const thaliOption = mine?.options.find((o) => o.menu_item_id === southItems.thali);
+  await api(student.email, `/polls/${mine?.id}/vote`, {
+    method: "POST",
+    body: { option_id: thaliOption?.id },
+  });
+  await expect(poll).toContainText("1 votes", { timeout: 20_000 });
+  await poll.getByRole("button", { name: "Close voting" }).click();
+  await expect(poll).toContainText("Closed");
+
+  // Party booking request from a student → manager accepts.
+  const host = await createStudent("Party Host");
+  const booked = await api<{ id: string }>(
+    host.email,
+    "/parties",
+    {
+      method: "POST",
+      body: {
+        outlet_id: "00000000-0000-4000-b000-000000000002",
+        event_name: "Robotics club social",
+        event_at: new Date(Date.now() + 4 * 86_400_000).toISOString(),
+        headcount: 15,
+        items: [{ menu_item_id: southItems.rajma, quantity: 15 }],
+      },
+    },
+    201,
+  );
+  await openSection(page, "Party bookings");
+  const booking = page.getByTestId("manager-party").filter({ hasText: "Robotics club social" });
+  await expect(booking).toContainText("Party Host");
+  await expect(booking).toContainText("₹1,200");
+  await booking.getByRole("button", { name: "Accept" }).click();
+  await expect(booking).toContainText("Accepted, awaiting payment");
+  expect((await api<{ status: string }[]>(host.email, "/parties")).find(() => true)?.status).toBe(
+    "accepted",
+  );
+  expect(booked.id).toBeTruthy();
 });

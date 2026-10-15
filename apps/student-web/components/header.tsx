@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { useCart } from "@/lib/hooks";
+import { useCart, useNotifications } from "@/lib/hooks";
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,6 +23,8 @@ export function Header() {
   const { session, ready } = useAuth();
   const cart = useCart();
   const count = cart.data?.item_count ?? 0;
+  const notifications = useNotifications();
+  const unread = notifications.data?.unread_count ?? 0;
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-1 px-4 sm:gap-2">
@@ -54,6 +56,33 @@ export function Header() {
                 </span>
               )}
             </NavLink>
+          )}
+          {ready && session && (
+            <Link
+              href="/notifications"
+              aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
+              className="relative grid size-9 place-items-center rounded-lg text-muted hover:text-ink"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="size-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden
+              >
+                <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+              </svg>
+              {unread > 0 && (
+                <span
+                  className="absolute -right-0.5 -top-0.5 min-w-5 rounded-full bg-accent px-1 text-center text-xs font-bold text-white"
+                  data-testid="unread-count"
+                >
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
+            </Link>
           )}
           {ready &&
             (session ? (

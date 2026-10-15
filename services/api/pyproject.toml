@@ -9,12 +9,12 @@ dependencies = [
     "pydantic-settings>=2.15,<3",
     "psycopg[binary,pool]>=3.3,<3.4",
     "pyjwt[crypto]>=2.15,<3",
+    "httpx2>=2.13,<3",  # outbound calls to Razorpay and Expo push
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=9.1,<10",
-    "httpx2>=2.13,<3",
     "websockets>=17,<18",
     "ruff>=0.17,<0.18",
     "mypy>=2.4,<3",

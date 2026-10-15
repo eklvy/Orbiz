@@ -62,7 +62,8 @@ test("order, pay (stand-in), and watch the kitchen update the order live until p
 
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
   await expect(page.getByText(/Awaiting payment — items and slot held for/)).toBeVisible();
-  await expect(page.getByRole("button", { name: /Pay ₹110 \(coming soon\)/ })).toBeDisabled();
+  // A new student's wallet is empty, so wallet payment is offered but disabled.
+  await expect(page.getByRole("button", { name: "Pay ₹110 from wallet" })).toBeDisabled();
   const orderId = orderIdFromUrl(page);
 
   // From here on the page is never reloaded: every change must arrive over Realtime.

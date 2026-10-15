@@ -3,7 +3,7 @@
 Status vocabulary: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `INCOMPLETE` · `COMPLETE`.
 A phase is `COMPLETE` only when its acceptance criteria were verified by commands actually run.
 
-Last updated: 2026-10-15 (Phase 4).
+Last updated: 2026-10-15 (Phase 5).
 
 ## Phase overview
 
@@ -14,7 +14,7 @@ Last updated: 2026-10-15 (Phase 4).
 | 2 | Core backend, ordering, inventory, real-time events | **COMPLETE** |
 | 3 | Student website + student mobile app | **COMPLETE** (native simulator run blocked) |
 | 4 | Manager dashboard + POS/kitchen dashboard | **COMPLETE** (RLS mutation check outstanding) |
-| 5 | Payments, wallets, group orders, notifications, loyalty, budgets, specials/polls/reviews | NOT STARTED |
+| 5 | Payments, wallets, group orders, notifications, loyalty, budgets, specials/polls/reviews | **COMPLETE** (no real Razorpay/Expo run; see Phase 5) |
 | 6A | RL environments, reward design, baselines | NOT STARTED |
 | 6B | RL training, evaluation, reproducibility, comparisons | NOT STARTED |
 | 6C | Live RL integration, fallbacks, RL Insights | NOT STARTED |
@@ -408,6 +408,74 @@ static prerender (they now render only in the browser); a test waited on the pre
 
 ---
 
+## Phase 5 — COMPLETE (not run against real Razorpay or Expo; RLS mutation check outstanding)
+
+Branch `phase-5/payments-wallet-social` (from `main` after merging Phase 4, PR #3).
+
+### Decisions
+- Product owner (2026-10-15): **D-6** no signup bonus · **D-15** 1 pt per ₹10 paid, +50 for a ₹999+ top-up, +15 per
+  review, tiers Silver 0 / Gold 1,000 / Platinum 3,000, 100 pts = ₹10 voucher, reversed on refund · **D-18** online only.
+- Our defaults, open to change: **D-20** refunds go to the wallet (minute job), top-ups ₹50–₹5,000, ₹10,000 cap ·
+  **D-21** the mobile app pays from the wallet; top-ups on the website · **D-22** group ≤ 10 people and 15 min to
+  pay, party bookings 24 h–60 days ahead (refund until 24 h before), bill splits ≤ 10 people.
+
+### Delivered
+**Migrations** (`supabase/migrations/20261016…`): `120000_payments_wallet` (payments, webhook de-dup, wallet +
+append-only ledger, `private.mark_order_paid`, wallet pay, Razorpay register/capture, refund payout job),
+`120100_loyalty_budget` (points ledger + tiers, vouchers with `total = subtotal − discount`, budgets, award/reversal
+triggers), `120200_notifications` (trigger-written notifications, push tokens, push queue), `120300_specials_polls_reviews`
+(server-priced specials with portions reserved in `app.create_order`, polls, anonymous reviews + replies, leaderboard,
+popular items k ≥ 5), `120400_social` (group orders with per-share wallet payment and refunds, party bookings, bill
+splits, name helpers, group-order guards on the single-order payment paths).
+
+**API:** modules `payments` (Razorpay client with HMAC checks, signed idempotent webhook), `rewards`, `notifications`
+(optional Expo push loop), `engagement`, `social`; menu and cart carry today's special price; orders carry discount,
+points and group link. Endpoints in [API.md](API.md). New settings: `CAMPUSCART_RAZORPAY_*`, `CAMPUSCART_EXPO_*`
+(optional; payments answer `503 payments_unavailable` without keys).
+
+**Clients:** website — payment panel (wallet, Razorpay Checkout when configured, vouchers), wallet, rewards, budget,
+notifications (live unread badge), specials on menus, live polls, reviews, ratings leaderboard, popular banner,
+group orders (live tray, split editor, per-share payment), party bookings, bill splits. Manager — specials & polls,
+reviews desk, party bookings. Mobile — wallet payment with vouchers, reviews, special prices, wallet/points on the
+profile, notifications screen (group/party/split screens are website-only for now).
+
+### Verification (actually run, 2026-10-15)
+| Check | Result |
+|---|---|
+| `bash scripts/verify.sh` (one clean run) | **"All checks passed."** |
+| pgTAP | **420/420** across 16 files (new: payments & wallet 32, loyalty & budget 27, notifications 14, specials/polls/reviews 33, social 40); tests no longer depend on leftover data |
+| pytest unit / integration | **50** / **49** (new integration: payments incl. forged and duplicate webhooks with a mocked Razorpay API and real HMACs, rewards, notifications incl. one Expo push pass against a mocked endpoint, engagement incl. the k ≥ 5 threshold, social) |
+| Vitest | contracts 3, client 20 |
+| Playwright | website **29** (+1 skipped by design), mobile **3**, POS **14**, manager **13** (+3 skipped by design) |
+| Builds | 4 Next.js apps, iOS + Android Hermes bundles |
+
+**Bugs found and fixed:** a `SELECT DISTINCT` typed the notification category as text; `lock_group` read its order
+in the same statement that created it; points could be reversed twice for a refunded group order; group members
+couldn't load their order (queue-position function); a host could pay a whole group order alone (now refused on
+every single-order payment path); several database tests counted rows across the whole database.
+
+**Not verified:**
+- **No real Razorpay or Expo calls.** No test keys or token were provided; Razorpay is exercised through a mocked
+  REST API and locally signed HMACs, Expo through a mocked endpoint. Online checkout in a browser has not run.
+- **RLS mutation check** still outstanding (the agent's safety classifier blocks temporarily weakening policies).
+- Native mobile run still blocked (Phase 3).
+
+### Acceptance criteria
+- [x] Payments are verified server-side (signatures, amounts, idempotent webhooks); ledgers are append-only
+- [x] Wallet, refunds, loyalty and vouchers move money/points only through audited functions
+- [x] Group orders, party bookings and bill splits settle exactly (integer paise; refunds on failure)
+- [x] Notifications come only from real events; specials, polls, reviews and popular items respect privacy rules
+- [x] Every new flow has database, API and browser tests against the real stack
+- [ ] Live Razorpay test-mode run (needs keys)
+
+### Known limitations (Phase 5)
+- Card refunds through Razorpay aren't built (refunds go to the wallet, D-20). No withdrawal to bank.
+- Budget excludes group shares and party bookings. "Crowd & queue" and "favourite item low stock" notifications
+  need data sources that don't exist yet.
+- Mobile has no group/party/split screens and no in-app top-up (D-21).
+
+---
+
 ## Prerequisites and blockers for upcoming phases
 
 | Needed for | Item | Status |
@@ -417,7 +485,7 @@ static prerender (they now render only in the browser); a test waited on the pre
 | Pilot | Real outlet list and menus (D-14) | OPEN (dev seeds are fictional) |
 | Phase 2 | Decision D-2 (seat/crowd data source) | OPEN, default documented |
 | Phase 3+ | Native mobile testing | Xcode installed, **iOS runtime missing** (`xcodebuild -downloadPlatform iOS`, ~8 GB); no Android SDK. Expo Go on a phone works without either |
-| Phase 5 | Razorpay **test-mode** key ID, key secret, webhook secret | Not provided |
+| Phase 5+ | Razorpay **test-mode** key ID, key secret, webhook secret | Not provided (code ready; set in `services/api/.env`) |
 | Phase 5 | Expo push access token; decisions D-6 (signup bonus), D-15 (loyalty policy), D-18 (pay at counter) | Not provided / OPEN |
 | Phase 7 | LLM provider choice for BiteBot (optional; must work without one) | Not decided |
 | Staging/prod | Supabase projects, hosting targets, domain | Not provided |

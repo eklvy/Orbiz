@@ -176,7 +176,9 @@ class OutletSummary(BaseModel):
     orders_by_status: dict[str, int]
     paid_orders: int
     gross_paid_paise: int
+    # Refunds still owed (any day), and refunds paid into wallets today (D-20).
     refunds_owed_paise: int
+    refunds_paid_today_paise: int
     no_shows: int
     deals: DealCounts
     deal_sales_paise: int

@@ -1,8 +1,9 @@
 """Environment-driven settings, validated at startup.
 
 Only settings needed by implemented phases are declared here. Later phases add their own
-(Razorpay, Expo push, model paths) together with the code that uses them, so a missing
-secret fails fast instead of being silently ignored.
+(model paths) together with the code that uses them, so a missing secret fails fast instead of
+being silently ignored. Optional integrations (Razorpay, Expo push) report themselves as
+unavailable rather than pretending to work.
 """
 
 from enum import StrEnum
@@ -53,6 +54,17 @@ class Settings(BaseSettings):
     db_pool_min_size: int = Field(default=1, ge=0)
     db_pool_max_size: int = Field(default=10, ge=1)
 
+    # Razorpay (Phase 5). TEST-mode keys in development. Payments are disabled (503) unless the
+    # key id and secret are both set; webhooks are rejected unless the webhook secret is set.
+    razorpay_key_id: str | None = None
+    razorpay_key_secret: SecretStr | None = None
+    razorpay_webhook_secret: SecretStr | None = None
+    razorpay_api_base: str = "https://api.razorpay.com/v1"
+
+    # Expo push (Phase 5). Optional: without it notifications are stored in-app but not pushed.
+    expo_access_token: SecretStr | None = None
+    expo_push_url: str = "https://exp.host/--/api/v2/push/send"
+
     @model_validator(mode="after")
     def _require_deployed_settings(self) -> Self:
         if self.environment in (Environment.STAGING, Environment.PRODUCTION):
@@ -65,6 +77,10 @@ class Settings(BaseSettings):
                     + ", ".join(f"CAMPUSCART_{m.upper()}" for m in missing)
                 )
         return self
+
+    @property
+    def payments_enabled(self) -> bool:
+        return bool(self.razorpay_key_id and self.razorpay_key_secret)
 
     @property
     def docs_enabled(self) -> bool:

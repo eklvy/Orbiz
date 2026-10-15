@@ -3,7 +3,7 @@
 Pre-order campus canteen food, pick a pickup slot, and collect it with a digital token instead of
 standing in a queue. Built by Team Orbiz for The NorthCap University.
 
-**Status:** Phase 4 (manager dashboard + POS/kitchen dashboard, refunds desk, no-show policy) complete. Real payments are Phase 5. Sign in to the dashboards with the fictional dev staff accounts in `supabase/seeds/01_dev_identity.sql`. See
+**Status:** Phase 5 (payments, wallet, loyalty, budgets, notifications, specials, polls, reviews, group orders, party bookings, bill splits) complete. Online payment needs Razorpay test keys in `services/api/.env`; without them the wallet works and online payment says it isn't set up. Sign in to the dashboards with the fictional dev staff accounts in `supabase/seeds/01_dev_identity.sql`. See
 [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
 | Interface | Path | Dev URL |

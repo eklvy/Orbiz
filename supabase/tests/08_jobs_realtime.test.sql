@@ -45,13 +45,14 @@ select results_eq(
 select set_eq(
   $$ select tablename::text from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' $$,
   array['outlets', 'menu_items', 'inventory', 'pickup_slots', 'orders', 'order_events',
-        'refund_requests', 'surplus_deals'],
+        'refund_requests', 'surplus_deals', 'wallet_accounts', 'loyalty_accounts', 'notifications',
+        'daily_specials', 'polls', 'poll_options', 'group_sessions'],
   'exactly the intended tables are published to Realtime (no carts, codes or ledgers)'
 );
 select set_eq(
   $$ select jobname::text from cron.job $$,
   array['campuscart-expire-pending-orders', 'campuscart-end-expired-breaks', 'campuscart-generate-upcoming-slots',
-        'campuscart-process-no-shows', 'campuscart-expire-surplus-deals'],
+        'campuscart-process-no-shows', 'campuscart-expire-surplus-deals', 'campuscart-payout-refunds'],
   'the scheduled jobs are registered'
 );
 

@@ -1,6 +1,6 @@
 # CampusCart — Architecture
 
-Status: **Phase 4 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
+Status: **Phase 5 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
 phase that implements them and updated here when that happens.
 
 Requirement sources: `CampusCart_Team_Orbiz_Report.pdf/.docx` (Team Orbiz, Aug 2026) and the master
@@ -264,10 +264,45 @@ their longest item's prep time, divided by the outlet's `concurrent_orders`. Cro
   become `no_show` but are not relisted. A partial unique index allows one paid order per deal.
 - **Lock order** extends §7: outlet → inventory (by id) → slot → order → deal → refund request.
 
+## 8c. Money, rewards, engagement and social _(implemented, Phase 5)_
+
+- **One way to become paid.** `private.mark_order_paid` (token, pickup code, deal handling) is the only code that
+  marks an order paid. It's reached from `app.capture_payment` (Razorpay, after an HMAC-verified checkout callback
+  or signed webhook), `app.pay_order_with_wallet`, `app.pay_group_share` (last share), and the system-only
+  `app.confirm_order_payment` used by tests. Razorpay orders are created over its REST API outside any database
+  transaction, then recorded with `app.register_payment`; capture checks the amount and is idempotent per provider
+  payment; webhooks are de-duplicated by event id. Captured money that can no longer pay its order (expired, total
+  changed by a voucher) goes to the wallet, never lost. Without keys the API answers `503 payments_unavailable`.
+- **Wallet.** `wallet_accounts` + append-only `wallet_ledger` (trigger refuses updates/deletes, even for the server).
+  `private.wallet_post` locks the account and refuses negative balances. Refunds owed are paid into the wallet by
+  `app.payout_refunds` (pg_cron, every minute; D-20 default); group refunds go back share by share. Transfers (bill
+  splits) lock both wallets in user-id order.
+- **Loyalty (D-15).** Append-only `loyalty_ledger` + `loyalty_accounts` (balance, lifetime for tiers). Triggers
+  award points on payment (1 per ₹10 actually paid; group members on their own share), on ₹999+ top-ups (+50) and
+  reviews (+15), and reverse an order's points when it is refunded (never below zero). Vouchers (100 points → ₹10,
+  90 days) reduce an unpaid order's total (`total = subtotal − discount`, a table CHECK); group orders can't use them.
+- **Budget.** A monthly/daily limit per student; spend is computed from paid, unrefunded orders.
+- **Notifications.** Written only by triggers on order events, refunds, loyalty, specials, polls, replies and
+  social actions; owners read and mark them read. An optional API task pushes new ones through Expo when
+  `CAMPUSCART_EXPO_ACCESS_TOKEN` is set (at-most-once; in-app always works).
+- **Specials, polls, reviews.** `app.item_special` is the single definition of today's special price (menu, cart and
+  `app.create_order` agree); portions are reserved and released with the order. Polls keep only counts on options
+  (votes are private); the manager publishes a winner as a special (D-16). Reviews are public but anonymous
+  (column grants hide the author); staff reply; `app.outlet_ratings` is the leaderboard. `app.popular_items`
+  returns counts only, with k ≥ 5 distinct students (D-9).
+- **Social (D-22 defaults).** Group sessions (members, tray, shares) become one order via `app.create_order`; shares
+  in integer paise (remainders to the host); 15 min to pay; unpaid → order cancelled and paid shares refunded.
+  Members can follow the order (RLS policy) but only the host has the pickup code. Party bookings and bill splits
+  are wallet-paid with refunds/transfers in the ledger. Names of other people come only from narrow functions
+  (`app.group_member_names`, `app.split_people`, `app.party_customer_names`).
+- **Lock order** extends §8b: … → order → deal → refund request → payment → group session/shares → wallet accounts
+  (by user id).
+
 ## 9. Real-time
 
 - **Chosen (Phase 2): Supabase Realtime `postgres_changes`** on `orders`, `order_events`, `outlets`,
-  `menu_items`, `inventory` and `pickup_slots` (Phase 4 adds `surplus_deals` and `refund_requests`), filtered per subscriber by RLS. Every important change is committed
+  `menu_items`, `inventory` and `pickup_slots` (Phase 4 adds `surplus_deals` and `refund_requests`; Phase 5 adds
+  `wallet_accounts`, `loyalty_accounts`, `notifications`, `daily_specials`, `polls`, `poll_options`, `group_sessions`), filtered per subscriber by RLS. Every important change is committed
   (with its `order_events` row) before Realtime sees it, so the database stays the source of truth and no outbox is
   needed yet. Not published: `carts` and `cart_items` (Realtime doesn't apply RLS to DELETE events, which would leak
   other users' keys), `order_pickup_codes` and `inventory_movements`.

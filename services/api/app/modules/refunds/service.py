@@ -55,12 +55,14 @@ async def desk(conn: Connection, outlet_id: UUID) -> RefundDesk:
         """
         select o.id as order_id, o.token_label as order_token, n.customer_name,
                o.total_paise as amount_paise, o.status::text as order_status, o.cancel_reason,
-               coalesce(o.cancelled_at, o.updated_at) as owed_since
+               coalesce(o.cancelled_at, o.updated_at) as owed_since,
+               o.refund_status = 'refunded' as paid_out
         from public.orders o
         left join lateral app.order_customer_names(array[o.id]) n on true
-        where o.outlet_id = %s and o.refund_status = 'required'
+        where o.outlet_id = %s and o.refund_status in ('required', 'refunded')
+          and coalesce(o.cancelled_at, o.updated_at) > now() - interval '30 days'
           and not exists (select 1 from public.refund_requests r where r.order_id = o.id)
-        order by owed_since
+        order by paid_out, owed_since
         limit 300
         """,
         (outlet_id,),

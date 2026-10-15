@@ -94,6 +94,8 @@ class Order(BaseModel):
     pickup_slot: PickupSlotRef | None
     # Set when this order bought a surplus deal (food from another student's uncollected order).
     source_deal_id: UUID | None
+    # Set for a group order: it is paid share by share (POST /groups/{id}/pay).
+    group_session_id: UUID | None
     status: OrderStatus
     payment_status: PaymentStatus
     refund_status: RefundStatus
@@ -101,6 +103,8 @@ class Order(BaseModel):
     # Only ever returned to the order's owner (staff verify it but cannot read it).
     pickup_code: str | None
     subtotal_paise: int
+    # Voucher discount; total = subtotal - discount.
+    discount_paise: int
     total_paise: int
     item_count: int
     reservation_expires_at: datetime | None
@@ -116,6 +120,8 @@ class Order(BaseModel):
     pickup_deadline: datetime | None
     no_show_at: datetime | None
     queue_position: int | None
+    # Loyalty points this order earned (net of reversals); owner only, else null.
+    loyalty_points: int | None
     version: int
     created_at: datetime
     updated_at: datetime
