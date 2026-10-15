@@ -172,7 +172,7 @@ select app.settle_bill_share((select id from t_ids where name = 'split'));
 select tests.as_superuser();
 select results_eq(
   $$ select pg_temp.balance('10000000-0000-4000-a000-000000000006'), pg_temp.balance('10000000-0000-4000-a000-000000000005'),
-            (select settled_at is not null from public.bill_splits) $$,
+            (select settled_at is not null from public.bill_splits where id = (select id from t_ids where name = 'split')) $$,
   $$ values (490000, 510000, true) $$, 'settled once by a wallet transfer to the creator');
 
 select * from finish();

@@ -110,7 +110,8 @@ select results_eq(
   $$ values ('required', 'approved'), ('required', 'approved') $$,
   'approved refunds are owed on the orders (paid out in Phase 5)'
 );
-select ok((select count(*) = 3 from public.audit_logs where table_name = 'refund_requests' and action = 'UPDATE'),
+select ok((select count(*) = 3 from public.audit_logs where table_name = 'refund_requests' and action = 'UPDATE'
+    and outlet_id = '20000000-0000-4000-b000-00000000000a'),
   'every decision is in the audit log');
 
 -- Limits -----------------------------------------------------------------------------------------
