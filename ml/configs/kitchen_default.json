@@ -1,0 +1,57 @@
+{
+  "arrival_profile": [
+    [
+      0,
+      0.25
+    ],
+    [
+      40,
+      0.55
+    ],
+    [
+      100,
+      0.3
+    ],
+    [
+      150,
+      0.15
+    ]
+  ],
+  "early_tolerance_minutes": 10.0,
+  "extra_slot_weights": [
+    0.5,
+    0.25,
+    0.15,
+    0.1
+  ],
+  "overtime_minutes": 60,
+  "prep_minutes": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    8
+  ],
+  "prep_noise_sigma": 0.2,
+  "prep_weights": [
+    0.1,
+    0.2,
+    0.25,
+    0.2,
+    0.15,
+    0.1
+  ],
+  "queue_window": 12,
+  "rewards": {
+    "early_per_minute": 0.2,
+    "late_per_minute": 1.0,
+    "on_time_bonus": 1.0,
+    "unfinished_penalty": 30.0,
+    "very_late_per_minute": 2.0
+  },
+  "service_minutes": 180,
+  "slot_minutes": 15,
+  "stations": 2,
+  "wait_minutes": 1.0
+}
