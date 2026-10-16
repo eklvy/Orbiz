@@ -57,7 +57,7 @@ test("order, pay (stand-in), and watch the kitchen update the order live until p
 
   await page.getByRole("link", { name: "Choose pickup time" }).click();
   await expect(page.getByTestId("cart-total")).toHaveText("₹110");
-  await page.locator('label:has(input[name="pickup-slot"]:not([disabled]))').first().click();
+  await page.locator('label:has(input[name="pickup-slot"]:not([disabled]))').nth(1).click();
   await page.getByRole("button", { name: "Place order" }).click();
 
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
@@ -91,7 +91,7 @@ test("an unpaid order can be cancelled and its stock is released", async ({ page
   await page.goto("/outlets/cafe-1");
   await page.getByRole("button", { name: "Add Cold Coffee" }).click();
   await page.getByRole("link", { name: "Choose pickup time" }).click();
-  await page.locator('label:has(input[name="pickup-slot"]:not([disabled]))').first().click();
+  await page.locator('label:has(input[name="pickup-slot"]:not([disabled]))').nth(1).click();
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page.getByText(/Awaiting payment — items and slot held for/)).toBeVisible();
   const orderId = orderIdFromUrl(page);
