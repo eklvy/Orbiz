@@ -65,7 +65,7 @@ test("an uncollected order explains the policy, and another student buys its foo
   try {
     const buyer = await createStudent("Deal Buyer");
     await signIn(buyerPage, buyer.email);
-    await buyerPage.goto("/outlets/dev-north-cafe");
+    await buyerPage.goto("/outlets/cafe-1");
     await expect(
       buyerPage.getByRole("heading", { name: "Ready now, at a discount" }),
     ).toBeVisible();

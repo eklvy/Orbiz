@@ -15,7 +15,7 @@ def test_outlet_list_is_public_and_carries_live_state(api: TestClient) -> None:
     response = api.get("/api/v1/outlets")
     assert response.status_code == 200, response.text
     by_slug = {o["slug"]: o for o in response.json()}
-    north = by_slug["dev-north-cafe"]
+    north = by_slug["cafe-1"]
     assert north["status"] == "open"
     assert north["accepting_orders"] is True
     assert set(north["queue"]) == {"active_orders", "estimated_wait_minutes", "crowd_level"}
@@ -23,7 +23,7 @@ def test_outlet_list_is_public_and_carries_live_state(api: TestClient) -> None:
 
 
 def test_outlet_detail_by_slug_includes_hours(api: TestClient) -> None:
-    response = api.get("/api/v1/outlets/dev-south-canteen")
+    response = api.get("/api/v1/outlets/cafe-10")
     assert response.status_code == 200, response.text
     body = response.json()
     assert len(body["hours"]) == 14, "two services a day, seven days"

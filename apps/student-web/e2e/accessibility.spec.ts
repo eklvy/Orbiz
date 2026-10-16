@@ -12,7 +12,7 @@ async function seriousViolations(page: Page) {
 }
 
 test("public pages have no serious accessibility violations", async ({ page }) => {
-  for (const path of ["/", "/outlets/dev-north-cafe", "/login", "/register"]) {
+  for (const path of ["/", "/outlets/cafe-1", "/login", "/register"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
     expect(await seriousViolations(page), path).toEqual([]);
@@ -22,7 +22,7 @@ test("public pages have no serious accessibility violations", async ({ page }) =
 test("signed-in pages have no serious accessibility violations", async ({ page }) => {
   const student = await createStudent();
   await signIn(page, student.email);
-  await page.goto("/outlets/dev-north-cafe");
+  await page.goto("/outlets/cafe-1");
   await page.getByRole("button", { name: "Add Masala Chai" }).click();
   for (const path of ["/cart", "/orders", "/profile"]) {
     await page.goto(path);

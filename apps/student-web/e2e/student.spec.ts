@@ -49,7 +49,7 @@ test("order, pay (stand-in), and watch the kitchen update the order live until p
   const student = await createStudent();
   await signIn(page, student.email);
 
-  await page.getByRole("link", { name: /Dev Sample North Café/ }).click();
+  await page.getByRole("link", { name: /Cafe 1(?!0)/ }).click();
   await page.getByRole("button", { name: "Add Paneer Sandwich" }).click();
   await page.getByRole("button", { name: "Add Masala Chai" }).click();
   await page.getByRole("button", { name: "Add one Masala Chai" }).click();
@@ -82,7 +82,7 @@ test("order, pay (stand-in), and watch the kitchen update the order live until p
   await expect(page.getByText("Collected").first()).toBeVisible();
 
   await page.getByRole("link", { name: "Orders" }).first().click();
-  await expect(page.getByRole("link", { name: /Dev Sample North Café/ })).toContainText(
+  await expect(page.getByRole("link", { name: /Cafe 1(?!0)/ })).toContainText(
     "Collected",
   );
 });
@@ -90,7 +90,7 @@ test("order, pay (stand-in), and watch the kitchen update the order live until p
 test("an unpaid order can be cancelled and its stock is released", async ({ page }) => {
   const student = await createStudent();
   await signIn(page, student.email);
-  await page.goto("/outlets/dev-north-cafe");
+  await page.goto("/outlets/cafe-1");
   await page.getByRole("button", { name: "Add Cold Coffee" }).click();
   await page.getByRole("link", { name: "Choose pickup time" }).click();
   await page.locator('label:has(input[name="pickup-slot"]:not([disabled]))').first().click();
@@ -119,7 +119,7 @@ test("menu filters and sold-out items", async ({ page }) => {
   const thali = "00000000-0000-4000-d000-000000000006";
   await sql("update public.menu_items set manual_status = 'sold_out' where id = $1", [thali]);
   try {
-    await page.goto("/outlets/dev-south-canteen");
+    await page.goto("/outlets/cafe-10");
     const card = page.getByRole("article", { name: "Veg Thali" });
     await expect(card.getByText("Sold out").first()).toBeVisible();
     await expect(card.getByRole("button", { name: "Add Veg Thali" })).toBeDisabled();
@@ -138,7 +138,7 @@ test("menu filters and sold-out items", async ({ page }) => {
 
 test("stock changes reach an open menu live", async ({ page }) => {
   const roll = "00000000-0000-4000-d000-000000000007";
-  await page.goto("/outlets/dev-south-canteen");
+  await page.goto("/outlets/cafe-10");
   const card = page.getByRole("article", { name: "Chicken Kathi Roll" });
   await expect(card).toBeVisible();
   const [row] = await sql<{ q: number }>(

@@ -51,7 +51,7 @@ test("cafe status: take a break with a public reason, then reopen", async ({ pag
   // South Canteen: other suites order at North Café in parallel.
   await signInStaff(page, SOUTH_MANAGER);
   await expect(
-    page.getByRole("heading", { level: 1, name: "Dev Sample South Canteen" }),
+    page.getByRole("heading", { level: 1, name: "Cafe 10" }),
   ).toBeVisible();
   try {
     await page.getByRole("button", { name: "Take a break" }).click();
@@ -68,7 +68,7 @@ test("cafe status: take a break with a public reason, then reopen", async ({ pag
       status_reason: "Restocking the counter",
     });
     // The fleet table updates live too.
-    await expect(page.getByRole("row", { name: /Dev Sample South Canteen/ })).toContainText(
+    await expect(page.getByRole("row", { name: /Cafe 10/ })).toContainText(
       "On a break",
     );
   } finally {
@@ -265,7 +265,7 @@ test("kitchen staff and students cannot use the manager console", async ({ page 
 test("every section is accessible and fits the screen", async ({ page }) => {
   await signInStaff(page, NORTH_MANAGER);
   const sections: [string, string, RegExp][] = [
-    ["Overview", "/", /^Dev Sample North Café$/],
+    ["Overview", "/", /^Cafe 1$/],
     ["Kitchen", "/kitchen", /^Kitchen queue$/],
     ["Menu & stock", "/menu", /^Menu & stock$/],
     ["Refunds", "/refunds", /^Refunds & cancellations$/],
