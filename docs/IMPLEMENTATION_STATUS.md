@@ -529,7 +529,7 @@ service but asks 78% of students; the threshold rule asks 16% and is the only ba
 |---|---|
 | `ml`: ruff, ruff format, mypy `--strict` | Pass (13 files) |
 | `ml`: pytest | **25/25**: spaces and reset, same seed ⇒ same episode, every order accounted for, reward recomputed from the documented formula, masks and refused invalid actions, waiting, overload cut-off penalty, every baseline only chooses valid actions, EDD beats FIFO on lateness over 20 seeds, config JSON round-trip; slot masks/capacity, reward formula (accepted and rejected nudges), determinism, least-loaded reduces crowding; evaluation output is labelled synthetic |
-| Full `bash scripts/verify.sh` | VERIFY_LINE |
+| Full `bash scripts/verify.sh` | **"All checks passed."** — incl. ml 25, pgTAP 420, API 50 + 49, Playwright web 29 / mobile 3 / POS 14 / manager 13 with the renamed cafes |
 
 **Bug found and fixed:** the first just-in-time rule held food back even while a backlog built up (44% on time); it
 now holds only when no more orders wait than there are stations.
