@@ -539,6 +539,9 @@ now holds only when no more orders wait than there are stations.
   real orders. No result here is a real-world claim.
 - No learning yet (Phase 6B: PPO with action masking, Thompson sampling, same seeds).
 - The kitchen model treats an order as one job on one station (no per-item stations or batching).
+- Found via CI (pre-existing since Phase 3, for Phase 8): the checkout lists slots that are too soon for the cart's
+  longest prep time; the server correctly refuses them ("slot too soon"), but the list should hide or disable them.
+  Tests now pick a slot at least 15 minutes ahead.
 
 ### Acceptance criteria
 - [x] Environments with valid-action masking for both advisors

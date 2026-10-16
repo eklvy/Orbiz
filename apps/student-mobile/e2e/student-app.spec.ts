@@ -90,7 +90,7 @@ test("student app: sign in, order, and follow the kitchen live until pickup", as
   await page.getByRole("button", { name: "Choose pickup time" }).click();
 
   await expect(page.getByTestId("cart-total")).toHaveText("₹90");
-  await page.getByRole("radio", { disabled: false }).first().click();
+  await page.getByRole("radio", { disabled: false }).nth(1).click();
   await page.getByRole("button", { name: "Place order" }).click();
 
   await expect(page.getByText(/Awaiting payment — held for/)).toBeVisible();
@@ -158,7 +158,7 @@ test("student app: an uncollected order becomes a deal another student buys", as
   for (let i = 0; i < 4; i += 1)
     await page.getByRole("button", { name: "Add one Egg Roll" }).click();
   await page.getByRole("button", { name: "Choose pickup time" }).click();
-  await page.getByRole("radio", { disabled: false }).first().click();
+  await page.getByRole("radio", { disabled: false }).nth(1).click();
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page.getByText(/Awaiting payment — held for/)).toBeVisible();
   const orderId = /\/order\/([0-9a-f-]{36})/.exec(page.url())?.[1] as string;
@@ -224,7 +224,7 @@ test("student app: pay an order from the wallet", async ({ page }) => {
   await page.getByRole("link", { name: /Cafe 1(?!0)/ }).click();
   await page.getByRole("button", { name: "Add Egg Roll" }).click();
   await page.getByRole("button", { name: "Choose pickup time" }).click();
-  await page.getByRole("radio", { disabled: false }).first().click();
+  await page.getByRole("radio", { disabled: false }).nth(1).click();
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page.getByTestId("wallet-balance")).toContainText("₹200");
   await page.getByRole("button", { name: "Pay ₹55 from wallet" }).click();

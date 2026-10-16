@@ -29,7 +29,7 @@ test("voucher + wallet payment, live token, review, points and notifications", a
   await page.goto("/outlets/cafe-1");
   await page.getByRole("button", { name: "Add Egg Roll" }).click();
   await page.getByRole("link", { name: "Choose pickup time" }).click();
-  await page.locator('label:has(input[name="pickup-slot"]:not([disabled]))').first().click();
+  await page.locator('label:has(input[name="pickup-slot"]:not([disabled]))').nth(1).click();
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page).toHaveURL(/\/orders\/[0-9a-f-]{36}$/);
   const orderId = orderIdFromUrl(page);
