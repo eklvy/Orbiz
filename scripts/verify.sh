@@ -39,6 +39,13 @@ step "mypy --strict (services/api)"
 step "Generated API contracts are up to date"
 bash scripts/check-contracts.sh
 
+step "Offline RL (ml/): ruff, mypy --strict, pytest"
+if [[ ! -x ml/.venv/bin/python ]]; then
+  echo "Missing ml/.venv — run: python3 -m venv ml/.venv && ml/.venv/bin/pip install -e 'ml[dev]'" >&2
+  exit 1
+fi
+(cd ml && .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy && .venv/bin/pytest -q)
+
 step "pytest unit tests (services/api)"
 (cd "$API" && .venv/bin/pytest -q -m "not integration")
 

@@ -26,7 +26,7 @@ test("voucher + wallet payment, live token, review, points and notifications", a
   const code = (await page.getByTestId("voucher-code").first().textContent())?.trim() ?? "";
   expect(code).toMatch(/^CC-[A-Z2-9]{8}$/);
 
-  await page.goto("/outlets/dev-north-cafe");
+  await page.goto("/outlets/cafe-1");
   await page.getByRole("button", { name: "Add Egg Roll" }).click();
   await page.getByRole("link", { name: "Choose pickup time" }).click();
   await page.locator('label:has(input[name="pickup-slot"]:not([disabled]))').first().click();
@@ -82,7 +82,7 @@ test("group order: friends join with a code, split by dish and each pay their sh
   await signIn(page, host.email);
   await page.goto("/groups");
   const start = page.getByRole("form", { name: "Start a group order" });
-  await start.getByLabel("Outlet").selectOption({ label: "Dev Sample North Café" });
+  await start.getByLabel("Outlet").selectOption({ label: "Cafe 1" });
   await start.getByLabel("Pickup time").selectOption({ index: 2 });
   await start.getByRole("button", { name: "Start group order" }).click();
   await expect(page).toHaveURL(/\/groups\/[0-9a-f-]{36}$/);
@@ -157,7 +157,7 @@ test("today's special price and a live poll vote", async ({ page }, testInfo) =>
     );
     const student = await createStudent("Voting Student");
     await signIn(page, student.email);
-    await page.goto("/outlets/dev-south-canteen");
+    await page.goto("/outlets/cafe-10");
     await expect(
       page.getByRole("article", { name: "Rajma Chawal" }).getByTestId("special-price"),
     ).toContainText("₹64");

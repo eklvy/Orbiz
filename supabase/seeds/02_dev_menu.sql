@@ -4,12 +4,12 @@
 update public.outlets set
   status = 'open', token_prefix = 'N', slot_minutes = 15, default_slot_capacity = 8,
   reservation_ttl_minutes = 10, concurrent_orders = 3
-where slug = 'dev-north-cafe';
+where slug = 'cafe-1';
 
 update public.outlets set
   status = 'open', token_prefix = 'S', slot_minutes = 15, default_slot_capacity = 12,
   reservation_ttl_minutes = 10, concurrent_orders = 2
-where slug = 'dev-south-canteen';
+where slug = 'cafe-10';
 
 -- Open every day: North 07:30–21:00, South 11:00–15:00 and 18:00–21:30 (two services).
 insert into public.outlet_hours (outlet_id, day_of_week, opens_at, closes_at)

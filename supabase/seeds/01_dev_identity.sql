@@ -1,13 +1,15 @@
 -- DEVELOPMENT SEED — local and automated-test databases only. NEVER run against staging or
--- production. All outlets and people here are fictional (REQUIREMENTS.md D-14).
+-- production. The outlet names "Cafe 1" and "Cafe 10" are the university's real cafe names
+-- (given by the product owner, 2026-10-16); their locations, menus, prices and all people here
+-- are fictional sample data (REQUIREMENTS.md D-14).
 --
 -- Test accounts (all share the password below; local-only throwaway credential):
 --   password: DevOnly-CampusCart-2026
 --
 --   admin@campuscart.test        platform admin
---   manager.north@campuscart.test  manager, Dev Sample North Café
---   kitchen.north@campuscart.test  kitchen staff, Dev Sample North Café
---   manager.south@campuscart.test  manager, Dev Sample South Canteen
+--   manager.north@campuscart.test  manager, Cafe 1
+--   kitchen.north@campuscart.test  kitchen staff, Cafe 1
+--   manager.south@campuscart.test  manager, Cafe 10
 --   student.one@campuscart.test    student (roll DEV-0001)
 --   student.two@campuscart.test    student (roll DEV-0002)
 --   faculty.one@campuscart.test    faculty
@@ -52,10 +54,10 @@ select
 from dev_users;
 
 insert into public.outlets (id, slug, name, description, location) values
-  ('00000000-0000-4000-b000-000000000001', 'dev-north-cafe', 'Dev Sample North Café',
-   'Fictional outlet for local development.', 'Dev Block A, Ground Floor'),
-  ('00000000-0000-4000-b000-000000000002', 'dev-south-canteen', 'Dev Sample South Canteen',
-   'Fictional outlet for local development.', 'Dev Block C, First Floor'),
+  ('00000000-0000-4000-b000-000000000001', 'cafe-1', 'Cafe 1',
+   'Sample menu for local development (real menu to come).', 'Dev Block A, Ground Floor'),
+  ('00000000-0000-4000-b000-000000000002', 'cafe-10', 'Cafe 10',
+   'Sample menu for local development (real menu to come).', 'Dev Block C, First Floor'),
   ('00000000-0000-4000-b000-000000000003', 'dev-closed-kiosk', 'Dev Inactive Kiosk',
    'Fictional inactive outlet — should be hidden from the public.', 'Dev Block D');
 update public.outlets set is_active = false where slug = 'dev-closed-kiosk';

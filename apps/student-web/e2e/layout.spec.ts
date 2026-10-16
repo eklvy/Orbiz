@@ -9,11 +9,11 @@ test("no page scrolls horizontally", async ({ page }) => {
     );
   const student = await createStudent();
   await signIn(page, student.email);
-  await page.goto("/outlets/dev-north-cafe");
+  await page.goto("/outlets/cafe-1");
   await page.getByRole("button", { name: "Add Masala Chai" }).click();
   for (const path of [
     "/",
-    "/outlets/dev-north-cafe",
+    "/outlets/cafe-1",
     "/cart",
     "/orders",
     "/profile",

@@ -3,7 +3,7 @@
 Status vocabulary: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `INCOMPLETE` · `COMPLETE`.
 A phase is `COMPLETE` only when its acceptance criteria were verified by commands actually run.
 
-Last updated: 2026-10-15 (Phase 5).
+Last updated: 2026-10-16 (Phase 6A).
 
 ## Phase overview
 
@@ -15,7 +15,7 @@ Last updated: 2026-10-15 (Phase 5).
 | 3 | Student website + student mobile app | **COMPLETE** (native simulator run blocked) |
 | 4 | Manager dashboard + POS/kitchen dashboard | **COMPLETE** (RLS mutation check outstanding) |
 | 5 | Payments, wallets, group orders, notifications, loyalty, budgets, specials/polls/reviews | **COMPLETE** (no real Razorpay/Expo run; see Phase 5) |
-| 6A | RL environments, reward design, baselines | NOT STARTED |
+| 6A | RL environments, reward design, baselines | **COMPLETE** (synthetic data only) |
 | 6B | RL training, evaluation, reproducibility, comparisons | NOT STARTED |
 | 6C | Live RL integration, fallbacks, RL Insights | NOT STARTED |
 | 7 | BiteBot, Surprise Meal, demand forecasting | NOT STARTED |
@@ -473,6 +473,78 @@ every single-order payment path); several database tests counted rows across the
 - Budget excludes group shares and party bookings. "Crowd & queue" and "favourite item low stock" notifications
   need data sources that don't exist yet.
 - Mobile has no group/party/split screens and no in-app top-up (D-21).
+
+---
+
+## Phase 6A — COMPLETE (synthetic simulations; no real order data yet)
+
+Branch `phase-6a/rl-environments`. Also in this branch: the dev outlets are renamed to the university's real cafe
+names **Cafe 1** and **Cafe 10** (product owner, 2026-10-16; D-14 partly resolved — menus remain sample data).
+
+### Delivered
+`ml/` Python package `campuscart_ml` (Gymnasium 1.4, NumPy 2.5; own `ml/.venv`; no PyTorch until 6B):
+- **Kitchen Dispatcher** (`kitchen/`): discrete-event simulation of one lunch service (arrival peak, pickup slots,
+  noisy prep times, `stations` in parallel). The agent acts only when a station is free and orders wait: start one of
+  the 12 oldest waiting orders or wait a minute. Invalid actions are masked (`action_masks()`) and refused.
+- **Slot Nudger** (`slots/`): contextual bandit; each checkout may get one suggested alternative slot (±2, only slots
+  with space) or none; simulated students accept with a hidden flexibility.
+- **Reward design** with reasoning in [`ml/REWARD_DESIGN.md`](../ml/REWARD_DESIGN.md); versioned config
+  `ml/configs/kitchen_default.json`.
+- **Baselines**: kitchen — FIFO, shortest prep first, earliest pickup first (EDD), least slack first, just-in-time
+  rule; slots — never nudge, random valid, least loaded, threshold rule. They see only what a real kitchen sees.
+- **Evaluation** `python -m campuscart_ml.evaluate` (fixed seeds, mean ± 95% CI, JSON + Markdown); `verify.sh` and a
+  new CI job run ruff, mypy `--strict`, pytest and a 20-episode smoke evaluation.
+
+### Baseline results (actually run, 2026-10-16: `--episodes 200 --seed 0 --kitchen-config configs/kitchen_default.json`)
+
+_SYNTHETIC simulation, 200 episodes per policy, seeds 0-199, generated 2026-10-16T03:26:51Z. Mean ± 95% CI._
+
+**Kitchen Dispatcher baselines**
+
+| Policy | On time | Mean late (min) | p95 late (min) | After slot end | Ready too early (min) | Reward |
+|---|---|---|---|---|---|---|
+| fifo | 70.2% ± 2.3% | 3.51 ± 0.52 | 14.8 ± 1.6 | 8.9% ± 1.7% | 7.72 ± 0.37 | -417 ± 76 |
+| shortest_prep_first | 82.1% ± 1.2% | 3.38 ± 0.44 | 22.7 ± 3.1 | 6.9% ± 0.8% | 9.51 ± 0.28 | -555 ± 81 |
+| earliest_due_first | 77.5% ± 2.7% | 1.85 ± 0.42 | 6.9 ± 1.2 | 4.1% ± 1.3% | 6.03 ± 0.43 | -198 ± 54 |
+| least_slack_first | 75.4% ± 2.9% | 2.07 ± 0.46 | 7.2 ± 1.2 | 4.7% ± 1.5% | 5.87 ± 0.43 | -219 ± 59 |
+| just_in_time | 67.4% ± 3.3% | 3.10 ± 0.57 | 10.0 ± 1.4 | 7.5% ± 1.9% | 2.01 ± 0.22 | -285 ± 77 |
+
+**Slot Nudger baselines**
+
+| Policy | Peak utilisation | Slots > 80% | Nudge rate | Accepted | Mean shift (slots) | Reward |
+|---|---|---|---|---|---|---|
+| never_nudge | 1.00 ± 0.00 | 5.35 ± 0.11 | 0.0% ± 0.0% | 0.0% ± 0.0% | 0.00 ± 0.00 | 0.00 ± 0.00 |
+| random_valid | 1.00 ± 0.00 | 5.04 ± 0.12 | 99.8% ± 0.1% | 30.7% ± 0.8% | 0.42 ± 0.01 | -9.11 ± 0.21 |
+| least_loaded | 1.00 ± 0.00 | 4.29 ± 0.15 | 78.0% ± 0.7% | 28.8% ± 0.8% | 0.33 ± 0.01 | -4.32 ± 0.16 |
+| threshold_rule | 1.00 ± 0.00 | 5.00 ± 0.11 | 16.4% ± 0.6% | 30.0% ± 1.7% | 0.07 ± 0.00 | 0.73 ± 0.14 |
+
+What this shows (synthetic): ordering by pickup time (EDD) gives the best overall reward and the smallest worst-case
+lateness; shortest-prep-first gets more orders on time but leaves a tail of very late ones; every work-conserving
+policy has food ready ~6–10 min too early, and the just-in-time rule cuts that to ~2 min at some cost in lateness — the
+trade-off a learned dispatcher (6B) must beat. For slots, least-loaded nudging removes about one crowded (>80%) slot per
+service but asks 78% of students; the threshold rule asks 16% and is the only baseline with a positive reward.
+
+### Verification (actually run)
+| Check | Result |
+|---|---|
+| `ml`: ruff, ruff format, mypy `--strict` | Pass (13 files) |
+| `ml`: pytest | **25/25**: spaces and reset, same seed ⇒ same episode, every order accounted for, reward recomputed from the documented formula, masks and refused invalid actions, waiting, overload cut-off penalty, every baseline only chooses valid actions, EDD beats FIFO on lateness over 20 seeds, config JSON round-trip; slot masks/capacity, reward formula (accepted and rejected nudges), determinism, least-loaded reduces crowding; evaluation output is labelled synthetic |
+| Full `bash scripts/verify.sh` | **"All checks passed."** — incl. ml 25, pgTAP 420, API 50 + 49, Playwright web 29 / mobile 3 / POS 14 / manager 13 with the renamed cafes |
+
+**Bug found and fixed:** the first just-in-time rule held food back even while a backlog built up (44% on time); it
+now holds only when no more orders wait than there are stations.
+
+### Not verified / limitations
+- **All data is synthetic.** Arrival rates, prep times and student flexibility are assumptions; re-fit when the pilot has
+  real orders. No result here is a real-world claim.
+- No learning yet (Phase 6B: PPO with action masking, Thompson sampling, same seeds).
+- The kitchen model treats an order as one job on one station (no per-item stations or batching).
+
+### Acceptance criteria
+- [x] Environments with valid-action masking for both advisors
+- [x] Reward design documented and tested against its formula
+- [x] Baselines implemented and evaluated with fixed seeds and confidence intervals
+- [x] Results reproducible from a versioned config and recorded honestly as synthetic
 
 ---
 

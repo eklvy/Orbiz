@@ -84,7 +84,7 @@ test("student app: sign in, order, and follow the kitchen live until pickup", as
   await expect(page.getByText("App Student").or(page.getByText(email)).first()).toBeVisible();
 
   await page.getByRole("tab", { name: /Outlets/ }).click();
-  await page.getByRole("link", { name: /Dev Sample North Café/ }).click();
+  await page.getByRole("link", { name: /Cafe 1(?!0)/ }).click();
   await page.getByRole("button", { name: "Add Paneer Sandwich" }).click();
   await page.getByRole("button", { name: "Add Masala Chai" }).click();
   await page.getByRole("button", { name: "Choose pickup time" }).click();
@@ -153,7 +153,7 @@ test("student app: an uncollected order becomes a deal another student buys", as
   const owner = await createStudent();
   await signInInApp(page, owner);
   await page.getByRole("tab", { name: /Outlets/ }).click();
-  await page.getByRole("link", { name: /Dev Sample North Café/ }).click();
+  await page.getByRole("link", { name: /Cafe 1(?!0)/ }).click();
   await page.getByRole("button", { name: "Add Egg Roll" }).click();
   for (let i = 0; i < 4; i += 1)
     await page.getByRole("button", { name: "Add one Egg Roll" }).click();
@@ -177,7 +177,7 @@ test("student app: an uncollected order becomes a deal another student buys", as
   try {
     await signInInApp(buyerPage, await createStudent());
     await buyerPage.getByRole("tab", { name: /Outlets/ }).click();
-    await buyerPage.getByRole("link", { name: /Dev Sample North Café/ }).click();
+    await buyerPage.getByRole("link", { name: /Cafe 1(?!0)/ }).click();
     await expect(buyerPage.getByText("Ready now, at a discount")).toBeVisible();
     // 5 × ₹55 at 50% off; prices come from the server.
     await expect(buyerPage.getByText("₹137.50").first()).toBeVisible();
@@ -221,7 +221,7 @@ test("student app: pay an order from the wallet", async ({ page }) => {
   await signInInApp(page, email);
   await expect(page.getByTestId("profile-wallet")).toHaveText("₹200");
   await page.getByRole("tab", { name: /Outlets/ }).click();
-  await page.getByRole("link", { name: /Dev Sample North Café/ }).click();
+  await page.getByRole("link", { name: /Cafe 1(?!0)/ }).click();
   await page.getByRole("button", { name: "Add Egg Roll" }).click();
   await page.getByRole("button", { name: "Choose pickup time" }).click();
   await page.getByRole("radio", { disabled: false }).first().click();

@@ -1,6 +1,6 @@
 # CampusCart — Architecture
 
-Status: **Phase 5 complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
+Status: **Phase 6A complete.** Sections marked _(proposed)_ are design intent. They are finalised in the
 phase that implements them and updated here when that happens.
 
 Requirement sources: `CampusCart_Team_Orbiz_Report.pdf/.docx` (Team Orbiz, Aug 2026) and the master
@@ -313,10 +313,10 @@ their longest item's prep time, divided by the outlet's `concurrent_orders`. Cro
   commit→event p95 539 ms. The steady ~0.5 s looks like Realtime's change-polling interval, not network time.
   Load and hosted-environment measurements come in Phase 8.
 
-## 10. Intelligence _(proposed, Phases 6–7)_
+## 10. Intelligence _(6A environments implemented; 6B–7 proposed)_
 
-- **Kitchen Dispatcher (PPO):** Gymnasium env + Stable-Baselines3 PPO with action masking. Baselines: FIFO, SPT, EDD, and a rule-based policy.
-- **Slot Nudger (contextual bandit, Thompson sampling):** acts only over slots the API marks valid at that moment. Includes a no-recommendation action. Baselines: random-valid, least-loaded, rule-based.
+- **Kitchen Dispatcher (PPO):** Gymnasium env (implemented, 6A: `ml/src/campuscart_ml/kitchen`, synthetic discrete-event lunch service, masked actions incl. "wait") + Stable-Baselines3 PPO with action masking (6B). Baselines implemented: FIFO, SPT, EDD, least slack, just-in-time rule. Reward: `ml/REWARD_DESIGN.md`.
+- **Slot Nudger (contextual bandit, Thompson sampling):** acts only over slots the API marks valid at that moment, plus a no-recommendation action. Environment and baselines implemented (6A: never, random-valid, least-loaded, threshold rule); Thompson sampling in 6B.
 - **Live integration (6C):** feature flag per model (`off`, `shadow`, `live`), inference timeout, action validation, deterministic fallback, and a decision log for every call. A model can't be `live` without a recorded passing evaluation.
 - **Forecasting / BiteBot / Surprise Meal (7):** grounded only in backend data. BiteBot must degrade gracefully with no LLM provider configured. Recommendations are revalidated at checkout.
 - Out of scope: campus navigation and the RL Campus Navigator.
