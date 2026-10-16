@@ -82,9 +82,7 @@ test("order, pay (stand-in), and watch the kitchen update the order live until p
   await expect(page.getByText("Collected").first()).toBeVisible();
 
   await page.getByRole("link", { name: "Orders" }).first().click();
-  await expect(page.getByRole("link", { name: /Cafe 1(?!0)/ })).toContainText(
-    "Collected",
-  );
+  await expect(page.getByRole("link", { name: /Cafe 1(?!0)/ })).toContainText("Collected");
 });
 
 test("an unpaid order can be cancelled and its stock is released", async ({ page }) => {

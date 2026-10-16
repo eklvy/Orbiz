@@ -50,9 +50,7 @@ test("cafe status: take a break with a public reason, then reopen", async ({ pag
   test.skip(testInfo.project.name !== "desktop", "changes shared outlet state");
   // South Canteen: other suites order at North Café in parallel.
   await signInStaff(page, SOUTH_MANAGER);
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Cafe 10" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Cafe 10" })).toBeVisible();
   try {
     await page.getByRole("button", { name: "Take a break" }).click();
     await page.getByLabel("Break length").selectOption("30");
@@ -68,9 +66,7 @@ test("cafe status: take a break with a public reason, then reopen", async ({ pag
       status_reason: "Restocking the counter",
     });
     // The fleet table updates live too.
-    await expect(page.getByRole("row", { name: /Cafe 10/ })).toContainText(
-      "On a break",
-    );
+    await expect(page.getByRole("row", { name: /Cafe 10/ })).toContainText("On a break");
   } finally {
     await page.getByRole("button", { name: "Open", exact: true }).click();
   }
